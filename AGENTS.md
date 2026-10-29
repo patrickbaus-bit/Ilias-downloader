@@ -1,10 +1,14 @@
 # Anleitung für KI-Assistenten: ILIAS-Downloader einrichten
 
+> Aktuelle Fassung dieser Anleitung: https://raw.githubusercontent.com/patrickbaus-bit/Ilias-downloader/main/AGENTS.md
+> Repository: https://github.com/patrickbaus-bit/Ilias-downloader
+> Kannst du keine Befehle selbst ausführen (z. B. ein Chat im Browser), führe die Person durch dieselben Schritte: Gib ihr jeweils einen Befehl zum Kopieren ins Terminal und lass dir die Ausgabe zurückschicken, bevor du weitermachst.
+
 Diese Datei richtet sich an KI-Assistenten (Claude Code, Claude, Codex, Cursor, Copilot …), die einer Person helfen, den ILIAS-Downloader auf ihrem Mac zu installieren. Die Person ist meist Studierende der Uni Mannheim und hat oft wenig Terminal-Erfahrung. Sprich Deutsch mit ihr (außer sie schreibt in einer anderen Sprache), erkläre kurz, was du tust, und führe die Befehle selbst aus, soweit du ein Terminal hast.
 
 ## Regeln, die immer gelten
 
-1. **Frage nie nach dem Uni-Passwort und gib es nirgends ein.** Zugangsdaten trägt die Person selbst ein, indem sie in ihrem eigenen Terminal-Fenster `./setup.sh --zugangsdaten` ausführt (Passwort wird verdeckt abgefragt und nur im macOS-Schlüsselbund gespeichert). Schreibt sie dir das Passwort trotzdem in den Chat, benutze es nicht und empfiehl ihr, es zu ändern.
+1. **Frage nie nach dem Uni-Passwort und gib es nirgends ein.** Zugangsdaten trägt die Person selbst ein, per Doppelklick auf „Zugangsdaten eingeben.command“ im Projektordner (Passwort wird verdeckt abgefragt und nur im macOS-Schlüsselbund gespeichert; siehe Schritt 5). Schreibt sie dir das Passwort trotzdem in den Chat, benutze es nicht und empfiehl ihr, es zu ändern.
 2. **Melde dich nicht selbst bei ILIAS an.** Wenn sich ein Browserfenster für den Uni-Login öffnet, meldet sich die Person dort selbst an.
 3. Ändere den Programmcode nicht, um ein Problem „wegzuhacken“. Funktioniert etwas nicht, nutze die Fehlerbehebung unten oder schlage vor, ein GitHub-Issue anzulegen.
 4. Lege keine persönlichen Dateien (Einstellungen, Sitzung, Downloads, Logs) im Repository ab und committe sie nie.

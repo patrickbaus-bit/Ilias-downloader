@@ -16,11 +16,9 @@ Lädt automatisch alle Materialien aus deinen ILIAS-Kursen auf deinen Mac, sorti
 Du musst nichts selbst im Terminal machen: Ein KI-Assistent mit Terminal-Zugriff richtet alles für dich ein, zum Beispiel **Claude** (Claude-Desktop-App mit Zugriff auf deinen Mac, oder Claude Code), **Codex** oder **Cursor**. Kopiere einfach diesen Text hinein:
 
 ```text
-Richte mir bitte den ILIAS-Downloader auf meinem Mac ein:
-https://github.com/patrickbaus-bit/Ilias-downloader
-
-Lade das Repository nach ~/Documents herunter, lies zuerst die Datei AGENTS.md
-und folge genau dieser Anleitung. Frag mich, wenn du eine Entscheidung von mir brauchst.
+Richte mir bitte den ILIAS-Downloader auf meinem Mac ein. Die komplette Anleitung für dich steht hier:
+https://raw.githubusercontent.com/patrickbaus-bit/Ilias-downloader/main/AGENTS.md
+Lies sie zuerst vollständig und folge ihr Schritt für Schritt.
 ```
 
 Das passiert danach, und das machst du dabei:
