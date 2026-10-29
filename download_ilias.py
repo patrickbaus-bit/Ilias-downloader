@@ -187,46 +187,67 @@ def discover_courses(page: Page) -> dict[str, str]:
     return found
 
 
-def choose_courses(found: dict[str, str]) -> dict[str, list[str]]:
-    """Ask in the terminal which courses to synchronise and return {folder name: [targets]}."""
-    if not found:
-        raise RuntimeError("Auf ILIAS wurden keine Kurse gefunden. Bist du in Kursen eingeschrieben?")
-    items = sorted(found.items(), key=lambda item: (item[0].startswith("grp"), item[1].casefold()))
+def sorted_found(found: dict[str, str]) -> list[tuple[str, str]]:
+    """Courses first, then groups, each alphabetically – the numbering shown to the user."""
+    return sorted(found.items(), key=lambda item: (item[0].startswith("grp"), item[1].casefold()))
+
+
+def print_found(items: list[tuple[str, str]]) -> None:
     print("\nDiese Kurse und Gruppen habe ich auf ILIAS gefunden:\n")
     for number, (target, title) in enumerate(items, 1):
         kind = "Gruppe" if target.startswith("grp") else "Kurs"
-        print(f"  {number:>2}. {title}  ({kind})")
-    print("\nWelche sollen heruntergeladen werden? Nummern mit Leerzeichen oder Komma trennen,")
-    print("Bereiche mit Bindestrich (z. B. 1 3 5-8). Enter ohne Eingabe = alle.")
-    while True:
-        answer = input("> ").strip()
-        if not answer:
-            chosen = list(range(1, len(items) + 1))
-            break
-        chosen = []
+        print(f"  {number:>2}. {title}  ({kind}, {target})")
+
+
+def parse_selection(answer: str, count: int) -> list[int]:
+    """Parse '1 3 5-8' or 'alle' into 1-based numbers; raise ValueError on bad input."""
+    answer = answer.strip()
+    if not answer or answer.casefold() in ("alle", "all"):
+        return list(range(1, count + 1))
+    chosen: list[int] = []
+    for part in re.split(r"[\s,;]+", answer):
+        if "-" in part:
+            start, end = (int(x) for x in part.split("-", 1))
+            chosen.extend(range(start, end + 1))
+        elif part:
+            chosen.append(int(part))
+    if not all(1 <= n <= count for n in chosen):
+        raise ValueError(f"Bitte nur Nummern von 1 bis {count} verwenden.")
+    return list(dict.fromkeys(chosen))
+
+
+def choose_courses(found: dict[str, str], selection: str | None = None) -> dict[str, list[str]]:
+    """Return {folder name: [targets]}; asks in the terminal unless `selection` is given."""
+    if not found:
+        raise RuntimeError("Auf ILIAS wurden keine Kurse gefunden. Bist du in Kursen eingeschrieben?")
+    items = sorted_found(found)
+    if selection is not None:
         try:
-            for part in re.split(r"[\s,;]+", answer):
-                if "-" in part:
-                    start, end = (int(x) for x in part.split("-", 1))
-                    chosen.extend(range(start, end + 1))
-                elif part:
-                    chosen.append(int(part))
-        except ValueError:
-            print("Bitte nur Zahlen eingeben, z. B. 1 3 5-8.")
-            continue
-        if all(1 <= n <= len(items) for n in chosen):
-            break
-        print(f"Bitte nur Nummern von 1 bis {len(items)} verwenden.")
+            chosen = parse_selection(selection, len(items))
+        except ValueError as exc:
+            print_found(items)
+            raise RuntimeError(f"Ungültige Kursauswahl '{selection}': {exc}") from None
+    else:
+        print_found(items)
+        print("\nWelche sollen heruntergeladen werden? Nummern mit Leerzeichen oder Komma trennen,")
+        print("Bereiche mit Bindestrich (z. B. 1 3 5-8). Enter ohne Eingabe = alle.")
+        while True:
+            try:
+                chosen = parse_selection(input("> "), len(items))
+                break
+            except ValueError as exc:
+                print(str(exc) if "Nummern" in str(exc) else "Bitte nur Zahlen eingeben, z. B. 1 3 5-8.")
     courses: dict[str, list[str]] = {}
-    for n in dict.fromkeys(chosen):
+    for n in chosen:
         target, title = items[n - 1]
         name = safe_name(title, target.replace("/", "-"))
         while name in courses:
             name += " (2)"
         courses[name] = [target]
-    print(f"\n{len(courses)} Kurse gespeichert in {settings.COURSES_FILE}")
-    print("Tipp: Dort kannst du Ordner umbenennen oder eine Tutoriumsgruppe in einen Kursordner")
-    print("aufnehmen. Neu auswählen (z. B. zum neuen Semester): ./run.sh --kurse-waehlen\n")
+    print(f"\n{len(courses)} Kurse gespeichert in {settings.COURSES_FILE}:")
+    for name in courses:
+        print(f"  – {name}")
+    print("Neu auswählen (z. B. zum neuen Semester): ./run.sh --kurse-waehlen\n")
     return courses
 
 
@@ -354,7 +375,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Lädt ILIAS-Kursmaterialien in einen Ordner pro Kurs.")
     parser.add_argument("--output", type=Path, default=OUTPUT, help="Zielordner (darin entsteht ein Ordner pro Kurs)")
     parser.add_argument("--depth", type=int, default=settings.load()["depth"], help="Maximale Unterordnertiefe")
-    parser.add_argument("--kurse-waehlen", dest="choose", action="store_true", help="Kurse neu auswählen")
+    parser.add_argument("--kurse-waehlen", dest="choose", action="store_true", help="Kurse neu auswählen (fragt im Terminal)")
+    parser.add_argument("--kurse-auflisten", dest="list_courses", action="store_true",
+                        help="Nur anmelden und die gefundenen Kurse nummeriert anzeigen, nichts herunterladen")
+    parser.add_argument("--kurse", dest="selection", metavar="AUSWAHL",
+                        help="Kurse ohne Rückfrage wählen, z. B. '1 3 5-8' oder 'alle' (Nummern aus --kurse-auflisten)")
     parser.add_argument("--browser", choices=("webkit", "chromium", "firefox"), default="webkit")
     parser.add_argument("--session-file", type=Path, help="Lokale ILIAS-Sitzungsdatei")
     parser.add_argument("--headless", action="store_true", help="Ohne Browserfenster; erfordert gültige Sitzung oder gespeicherte Zugangsdaten")
@@ -368,9 +393,11 @@ def main() -> None:
         args.markdown = args.markdown or config["markdown_after_sync"]
     root = args.output.expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
-    courses = None if args.choose else settings.load_courses()
-    if courses is None and not sys.stdin.isatty():
-        raise RuntimeError("Noch keine Kurse ausgewählt. Bitte einmal im Terminal ./run.sh --kurse-waehlen ausführen.")
+    reselect = args.choose or args.selection is not None or args.list_courses
+    courses = None if reselect else settings.load_courses()
+    if courses is None and args.selection is None and not args.list_courses and not sys.stdin.isatty():
+        raise RuntimeError("Noch keine Kurse ausgewählt. Erst ./run.sh --kurse-auflisten, "
+                           "dann ./run.sh --kurse '1 3 5' (oder im Terminal ./run.sh --kurse-waehlen).")
     settings.SUPPORT_DIR.mkdir(parents=True, exist_ok=True)
     session_file = (args.session_file or settings.SESSION_FILE).expanduser().resolve()
     with sync_playwright() as playwright:
@@ -407,8 +434,17 @@ def main() -> None:
             # Playwright must process browser events while waiting for SAML.
             page.wait_for_timeout(1000)
             waited += 1
+        if args.list_courses:
+            items = sorted_found(discover_courses(page))
+            if not items:
+                raise RuntimeError("Auf ILIAS wurden keine Kurse gefunden. Bist du in Kursen eingeschrieben?")
+            print_found(items)
+            print("\nAuswahl übernehmen und herunterladen mit: ./run.sh --kurse '1 3 5-8'  (oder 'alle')")
+            context.close()
+            browser.close()
+            return
         if courses is None:
-            courses = choose_courses(discover_courses(page))
+            courses = choose_courses(discover_courses(page), args.selection)
             settings.save_courses(courses)
         total = 0
         for course_name, starts in courses.items():

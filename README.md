@@ -11,7 +11,28 @@ Lädt automatisch alle Materialien aus deinen ILIAS-Kursen auf deinen Mac, sorti
 
 ---
 
-## Installation (einmalig, ca. 5 Minuten)
+## Einrichtung mit KI (empfohlen)
+
+Du musst nichts selbst im Terminal machen: Ein KI-Assistent mit Terminal-Zugriff richtet alles für dich ein, zum Beispiel **Claude** (Claude-Desktop-App mit Zugriff auf deinen Mac, oder Claude Code), **Codex** oder **Cursor**. Kopiere einfach diesen Text hinein:
+
+```text
+Richte mir bitte den ILIAS-Downloader auf meinem Mac ein:
+https://github.com/patrickbaus-bit/Ilias-downloader
+
+Lade das Repository nach ~/Documents herunter, lies zuerst die Datei AGENTS.md
+und folge genau dieser Anleitung. Frag mich, wenn du eine Entscheidung von mir brauchst.
+```
+
+Der Assistent installiert alles, fragt dich nach deinen Wünschen (Ordner, Uhrzeit) und zeigt dir die Liste deiner Kurse zur Auswahl. Zwei Dinge machst du immer selbst, und die KI sagt dir jeweils, wann:
+
+- **Dein Uni-Passwort** gibst du nie in den Chat ein. Die KI gibt dir einen Befehl, den du in dein Terminal-Fenster kopierst; dort tippst du das Passwort verdeckt ein, und es landet nur im macOS-Schlüsselbund.
+- **Die ILIAS-Anmeldung** im Browserfenster (falls du kein Passwort speichern willst).
+
+Nutzt du eine KI ohne Terminal-Zugriff (z. B. ChatGPT im Browser), funktioniert der gleiche Text auch: Dann erklärt sie dir Schritt für Schritt, was du ins Terminal kopieren sollst.
+
+---
+
+## Installation von Hand (einmalig, ca. 5 Minuten)
 
 ### 1. Python installieren (falls noch nicht vorhanden)
 

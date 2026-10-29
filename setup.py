@@ -147,17 +147,99 @@ def setup_schedule() -> None:
     write_schedule(hour, minute)
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Einrichtung des ILIAS-Downloaders.")
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("--zugangsdaten", action="store_true", help="Nur Uni-ID/Passwort ändern")
-    group.add_argument("--zugangsdaten-loeschen", action="store_true", help="Uni-ID/Passwort aus dem Schlüsselbund entfernen")
-    group.add_argument("--ordner", action="store_true", help="Nur Ordner und Optionen ändern")
-    group.add_argument("--zeitplan", action="store_true", help="Nur den täglichen Abgleich ändern")
-    group.add_argument("--zeitplan-entfernen", action="store_true", help="Täglichen Abgleich ausschalten")
-    args = parser.parse_args()
+def status() -> None:
+    """Print the current configuration as JSON (for humans and AI assistants)."""
+    import json
+
+    data = settings.load()
+    courses = settings.load_courses()
+    schedule = None
+    if AGENT_PLIST.exists():
+        try:
+            interval = plistlib.loads(AGENT_PLIST.read_bytes())["StartCalendarInterval"]
+            schedule = f"{interval['Hour']:02d}:{interval['Minute']:02d}"
+        except (OSError, KeyError, ValueError):
+            schedule = "unbekannt"
+    print(json.dumps({
+        "installiert": True,
+        "einstellungen_gespeichert": settings.SETTINGS_FILE.exists(),
+        "zugangsdaten_gespeichert_fuer": settings.stored_username(),
+        "materialordner": data["semester_dir"],
+        "markdown_ordner": data["markdown_dir"],
+        "taeglich_ohne_browserfenster": data["headless"],
+        "taeglich_markdown_erzeugen": data["markdown_after_sync"],
+        "taeglicher_abgleich_um": schedule,
+        "kurse_ausgewaehlt": list(courses) if courses else None,
+        "ilias_sitzung_vorhanden": settings.SESSION_FILE.exists(),
+    }, ensure_ascii=False, indent=2))
+
+
+def parse_bool(value: str) -> bool:
+    if value.casefold() in ("ja", "j", "yes", "y", "true", "1", "an"):
+        return True
+    if value.casefold() in ("nein", "n", "no", "false", "0", "aus"):
+        return False
+    raise argparse.ArgumentTypeError("bitte ja oder nein")
+
+
+def parse_time(value: str) -> tuple[int, int]:
     try:
-        if args.zugangsdaten:
+        hour, minute = (int(x) for x in value.split(":", 1))
+    except ValueError:
+        raise argparse.ArgumentTypeError("Format HH:MM, z. B. 09:00") from None
+    if not (0 <= hour < 24 and 0 <= minute < 60):
+        raise argparse.ArgumentTypeError("Format HH:MM, z. B. 09:00")
+    return hour, minute
+
+
+def apply_options(args: argparse.Namespace) -> None:
+    """Non-interactive setup: only the options that were given are changed."""
+    data = settings.load()
+    if args.materialordner:
+        data["semester_dir"] = str(Path(args.materialordner).expanduser().resolve())
+    if args.markdown_ordner:
+        data["markdown_dir"] = str(Path(args.markdown_ordner).expanduser().resolve())
+    semester, markdown = Path(data["semester_dir"]).resolve(), Path(data["markdown_dir"]).resolve()
+    if markdown == semester or semester in markdown.parents:
+        sys.exit("FEHLER: Der Markdown-Ordner darf nicht im Materialordner liegen.")
+    if args.hintergrund is not None:
+        data["headless"] = args.hintergrund
+    if args.markdown_nach_abgleich is not None:
+        data["markdown_after_sync"] = args.markdown_nach_abgleich
+    settings.save(data)
+    semester.mkdir(parents=True, exist_ok=True)
+    print(f"Einstellungen gespeichert in {settings.SETTINGS_FILE}")
+    if args.taeglich_um:
+        write_schedule(*args.taeglich_um)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Einrichtung des ILIAS-Downloaders. Ohne Optionen startet die Einrichtung mit Rückfragen.")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--status", action="store_true", help="Aktuelle Einrichtung als JSON anzeigen")
+    group.add_argument("--zugangsdaten", action="store_true", help="Uni-ID/Passwort eingeben (fragt im Terminal)")
+    group.add_argument("--zugangsdaten-loeschen", action="store_true", help="Uni-ID/Passwort aus dem Schlüsselbund entfernen")
+    group.add_argument("--ordner", action="store_true", help="Ordner und Optionen mit Rückfragen ändern")
+    group.add_argument("--zeitplan", action="store_true", help="Täglichen Abgleich mit Rückfragen ändern")
+    group.add_argument("--zeitplan-entfernen", action="store_true", help="Täglichen Abgleich ausschalten")
+    direct = parser.add_argument_group("ohne Rückfragen (z. B. für KI-Assistenten)")
+    direct.add_argument("--materialordner", metavar="PFAD", help="Zielordner für Kursmaterialien")
+    direct.add_argument("--markdown-ordner", metavar="PFAD", help="Zielordner für Markdown-Kopien")
+    direct.add_argument("--hintergrund", type=parse_bool, metavar="ja|nein",
+                        help="Täglichen Abgleich ohne Browserfenster ausführen")
+    direct.add_argument("--markdown-nach-abgleich", type=parse_bool, metavar="ja|nein",
+                        help="Beim täglichen Abgleich danach Markdown erzeugen")
+    direct.add_argument("--taeglich-um", type=parse_time, metavar="HH:MM", help="Täglichen Abgleich einrichten")
+    args = parser.parse_args()
+    direct_given = any(getattr(args, name) is not None for name in
+                       ("materialordner", "markdown_ordner", "hintergrund", "markdown_nach_abgleich", "taeglich_um"))
+    try:
+        if args.status:
+            status()
+        elif direct_given:
+            apply_options(args)
+        elif args.zugangsdaten:
             setup_credentials()
         elif args.zugangsdaten_loeschen:
             settings.delete_credentials()
@@ -168,6 +250,8 @@ def main() -> None:
             setup_schedule()
         elif args.zeitplan_entfernen:
             remove_schedule()
+        elif not sys.stdin.isatty():
+            sys.exit("Keine Optionen angegeben und kein Terminal für Rückfragen. Siehe ./setup.sh --help")
         else:
             print("Einrichtung des ILIAS-Downloaders (Abbrechen jederzeit mit Ctrl+C)")
             setup_credentials()

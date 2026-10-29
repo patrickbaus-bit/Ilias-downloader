@@ -1,5 +1,7 @@
 #!/usr/bin/env zsh
 # Einmalige Installation des ILIAS-Downloaders auf macOS.
+# ./install.sh                     installiert und startet danach die Einrichtung mit Rückfragen
+# ./install.sh --ohne-einrichtung  nur installieren (z. B. wenn ein KI-Assistent einrichtet)
 set -euo pipefail
 cd "${0:A:h}"
 
@@ -38,5 +40,9 @@ print "Installiere Abhängigkeiten (das dauert beim ersten Mal ein paar Minuten)
 "$venv/bin/python" -m playwright install webkit
 
 chmod +x run.sh setup.sh markdown.sh
-print "\nInstallation abgeschlossen. Jetzt folgt die Einrichtung.\n"
-./setup.sh
+if [[ "${1:-}" == "--ohne-einrichtung" || ! -t 0 ]]; then
+  print "\nInstallation abgeschlossen. Einrichtung: ./setup.sh (mit Rückfragen) oder ./setup.sh --help"
+else
+  print "\nInstallation abgeschlossen. Jetzt folgt die Einrichtung.\n"
+  ./setup.sh
+fi
