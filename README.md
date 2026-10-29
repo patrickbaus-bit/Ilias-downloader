@@ -71,7 +71,9 @@ Danach fragt er:
 ./run.sh
 ```
 
-Beim ersten Mal listet der Downloader alle Kurse auf, in denen du auf ILIAS eingeschrieben bist, nach Semester sortiert. Tutoriums- und Übungsgruppen hängen automatisch an ihrem Kurs. Du gibst die Nummern der Kurse ein, die du haben willst (z. B. `1 3 5-8`), `aktuell` für alle Kurse des neuesten Semesters oder Enter für alles. Danach beginnt der Download.
+Beim ersten Mal zeigt der Downloader deine Kurse aus dem **laufenden Semester** (und schon vorhandene des nächsten); vergangene Semester blendet er aus. Tutoriums- und Übungsgruppen hängen automatisch an ihrem Kurs. Drück Enter für alle angezeigten Kurse oder gib nur einzelne Nummern ein (z. B. `1 3 5-8`). Danach beginnt der Download.
+
+**Semesterwechsel:** Du musst nichts tun. Neue Kurse kommen beim nächsten Abgleich automatisch dazu, auch solche des kommenden Semesters, sobald du dort eingeschrieben bist. Die Kurse des laufenden Semesters werden weiter aktualisiert, bis das Semester vorbei ist (HWS bis Ende Februar, FSS bis Ende August). Danach lässt der Downloader sie weg. Ihre Ordner bleiben auf deinem Mac liegen.
 
 Falls macOS fragt, ob das Terminal auf den Ordner „Dokumente“ zugreifen darf: **Erlauben** klicken.
 
@@ -84,7 +86,8 @@ Falls macOS fragt, ob das Terminal auf den Ordner „Dokumente“ zugreifen darf
 | Neue Materialien laden (mit sichtbarem Browserfenster) | `./run.sh` |
 | Ohne Browserfenster (braucht gespeicherte Zugangsdaten) | `./run.sh --headless` |
 | Markdown diesmal auslassen / erzwingen (Standard: laut Einstellung) | `./run.sh --kein-markdown` / `./run.sh --markdown` |
-| Kurse neu auswählen (z. B. neues Semester) | `./run.sh --kurse-waehlen` oder direkt `./run.sh --kurse aktuell` |
+| Kurse neu auswählen | `./run.sh --kurse-waehlen` |
+| Auch Kurse älterer Semester auswählen | `./run.sh --kurse-waehlen --alle-semester` |
 | Nur Markdown-Kopien erzeugen | `./markdown.sh` |
 | Fehlgeschlagene Markdown-Dateien erneut versuchen | `./markdown.sh --retry-failed` |
 | Alles neu einrichten | `./setup.sh` |
@@ -161,7 +164,7 @@ Der Konverter funktioniert auch unabhängig von ILIAS für beliebige Ordner:
 - **„ILIAS-Anmeldung fehlgeschlagen“** – Uni-ID oder Passwort stimmen nicht. Per Doppelklick auf „Zugangsdaten eingeben.command“ neu eingeben. Der Downloader versucht es pro Lauf nur einmal, damit dein Konto nicht gesperrt wird.
 - **„ILIAS verlangt einen weiteren Anmeldeschritt“** – z. B. Zwei-Faktor-Abfrage. Einmal `./run.sh` starten und die Anmeldung im sichtbaren Fenster abschließen. Danach merkt sich der Downloader die Sitzung eine Weile. Für den täglichen Abgleich ggf. mit `./setup.sh --ordner` die Hintergrund-Option ausschalten.
 - **„Operation not permitted“ / keine Dateien im Ordner „Dokumente“** – Systemeinstellungen → Datenschutz & Sicherheit → Dateien und Ordner → beim Terminal „Dokumente“ erlauben.
-- **Ein Kurs fehlt in der Liste** – der Downloader liest die Kurse aus „Meine Kurse und Gruppen“ auf ILIAS. Kurs dort beitreten und `./run.sh --kurse-waehlen` ausführen.
+- **Ein Kurs fehlt in der Liste** – der Downloader liest die Kurse aus „Meine Kurse und Gruppen“ auf ILIAS und zeigt nur das neueste Semester. Kurse ohne Semesterangabe im Namen oder aus älteren Semestern findest du mit `./run.sh --kurse-waehlen --alle-semester`.
 - **Dateien werden nicht gefunden** – ILIAS ändert gelegentlich seine Seitenstruktur. Bitte ein Issue hier auf GitHub anlegen (ohne persönliche Daten).
 
 ## Aktualisieren

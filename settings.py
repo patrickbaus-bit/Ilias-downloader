@@ -25,6 +25,10 @@ DEFAULTS = {
     "headless": True,
     "markdown_after_sync": False,
     "depth": 5,
+    # "aktuell": always follow the newest semester (new courses are added, old ones dropped);
+    # "manuell": keep the chosen courses until the next semester appears on ILIAS.
+    "course_mode": "aktuell",
+    "course_semester": None,
 }
 
 

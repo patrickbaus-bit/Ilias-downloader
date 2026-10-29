@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 from collections import deque
+from datetime import date
 from pathlib import Path
 from urllib.error import URLError
 from urllib.parse import parse_qs, unquote, urlparse
@@ -249,13 +250,45 @@ def build_entries(found: dict[str, str]) -> list[dict]:
     return entries
 
 
+def calendar_semester(today: date | None = None) -> tuple[int, int]:
+    """Semester running on `today`: HWS from September through February, FSS March through August."""
+    today = today or date.today()
+    if today.month >= 9:
+        return today.year, 1
+    if today.month <= 2:
+        return today.year - 1, 1
+    return today.year, 0
+
+
+def newest_semester(entries: list[dict]) -> tuple[int, int] | None:
+    return max((e["semester"] for e in entries if e["semester"]), default=None)
+
+
+def first_relevant_semester(entries: list[dict], today: date | None = None) -> tuple[int, int] | None:
+    """Oldest semester still worth syncing: the running one (or, if ILIAS shows no course for it
+    yet, the newest one found). Courses of later semesters are always included."""
+    newest = newest_semester(entries)
+    if newest is None:
+        return None
+    return min(calendar_semester(today), newest)
+
+
+def visible_entries(entries: list[dict], all_semesters: bool, today: date | None = None) -> tuple[list[dict], int]:
+    """Current and upcoming semesters unless all_semesters; returns (entries, number hidden)."""
+    start = first_relevant_semester(entries, today)
+    if all_semesters or start is None:
+        return entries, 0
+    shown = [e for e in entries if e["semester"] and e["semester"] >= start]
+    return shown, len(entries) - len(shown)
+
+
 def semester_label(key: tuple[int, int] | None) -> str:
     if key is None:
         return "Ohne Semesterangabe"
     return f"{'HWS' if key[1] else 'FSS'} {key[0]}"
 
 
-def print_found(entries: list[dict]) -> None:
+def print_found(entries: list[dict], hidden: int = 0) -> None:
     print("\nDiese Kurse habe ich auf ILIAS gefunden (Tutoriums-/Übungsgruppen hängen am Kurs):")
     current = object()
     for number, entry in enumerate(entries, 1):
@@ -265,6 +298,9 @@ def print_found(entries: list[dict]) -> None:
         print(f"  {number:>3}. {entry['title']}")
         for group in entry["groups"]:
             print(f"         + Gruppe: {group}")
+    if hidden:
+        print(f"\n  ({hidden} Kurse aus vergangenen Semestern oder ohne Semesterangabe ausgeblendet –"
+              " anzeigen mit --alle-semester)")
 
 
 def parse_selection(answer: str, entries: list[dict]) -> list[int]:
@@ -274,10 +310,10 @@ def parse_selection(answer: str, entries: list[dict]) -> list[int]:
     if not answer or answer in ("alle", "all"):
         return list(range(1, count + 1))
     if answer in ("aktuell", "current"):
-        newest = max((e["semester"] for e in entries if e["semester"]), default=None)
-        if newest is None:
+        start = first_relevant_semester(entries)
+        if start is None:
             raise ValueError("Keine Semesterangaben gefunden – bitte Nummern angeben.")
-        return [n for n, e in enumerate(entries, 1) if e["semester"] == newest]
+        return [n for n, e in enumerate(entries, 1) if e["semester"] and e["semester"] >= start]
     chosen: list[int] = []
     for part in re.split(r"[\s,;]+", answer):
         if "-" in part:
@@ -290,27 +326,7 @@ def parse_selection(answer: str, entries: list[dict]) -> list[int]:
     return list(dict.fromkeys(chosen))
 
 
-def choose_courses(found: dict[str, str], selection: str | None = None) -> dict[str, list[str]]:
-    """Return {folder name: [targets]}; asks in the terminal unless `selection` is given."""
-    if not found:
-        raise RuntimeError("Auf ILIAS wurden keine Kurse gefunden. Bist du in Kursen eingeschrieben?")
-    entries = build_entries(found)
-    if selection is not None:
-        try:
-            chosen = parse_selection(selection, entries)
-        except ValueError as exc:
-            print_found(entries)
-            raise RuntimeError(f"Ungültige Kursauswahl '{selection}': {exc}") from None
-    else:
-        print_found(entries)
-        print("\nWelche sollen heruntergeladen werden? Nummern mit Leerzeichen oder Komma trennen,")
-        print("Bereiche mit Bindestrich (z. B. 1 3 5-8), 'aktuell' = neuestes Semester, Enter = alle.")
-        while True:
-            try:
-                chosen = parse_selection(input("> "), entries)
-                break
-            except ValueError as exc:
-                print(str(exc) if "Nummern" in str(exc) or "Semester" in str(exc) else "Bitte nur Zahlen eingeben, z. B. 1 3 5-8.")
+def courses_from(entries: list[dict], chosen: list[int]) -> dict[str, list[str]]:
     courses: dict[str, list[str]] = {}
     for n in chosen:
         entry = entries[n - 1]
@@ -318,11 +334,97 @@ def choose_courses(found: dict[str, str], selection: str | None = None) -> dict[
         while name in courses:
             name += " (2)"
         courses[name] = entry["targets"]
-    print(f"\n{len(courses)} Kurse gespeichert in {settings.COURSES_FILE}:")
+    return courses
+
+
+def remember_mode(selection: str, entries: list[dict], all_entries: list[dict]) -> None:
+    config = settings.load()
+    config["course_mode"] = "aktuell" if selection.strip().casefold() in ("", "aktuell", "current", "alle", "all") \
+        and entries == visible_entries(all_entries, False)[0] else "manuell"
+    start = first_relevant_semester(all_entries)
+    config["course_semester"] = semester_label(start) if start else None
+    settings.save(config)
+
+
+def choose_courses(found: dict[str, str], selection: str | None = None,
+                   all_semesters: bool = False) -> dict[str, list[str]]:
+    """Return {folder name: [targets]}; asks in the terminal unless `selection` is given."""
+    if not found:
+        raise RuntimeError("Auf ILIAS wurden keine Kurse gefunden. Bist du in Kursen eingeschrieben?")
+    all_entries = build_entries(found)
+    entries, hidden = visible_entries(all_entries, all_semesters)
+    if selection is not None:
+        try:
+            chosen = parse_selection(selection, entries)
+        except ValueError as exc:
+            print_found(entries, hidden)
+            raise RuntimeError(f"Ungültige Kursauswahl '{selection}': {exc}") from None
+    else:
+        print_found(entries, hidden)
+        print("\nWelche sollen heruntergeladen werden? Nummern mit Leerzeichen oder Komma trennen,")
+        print("Bereiche mit Bindestrich (z. B. 1 3 5-8). Enter = alle angezeigten.")
+        while True:
+            try:
+                selection = input("> ")
+                chosen = parse_selection(selection, entries)
+                break
+            except ValueError as exc:
+                print(str(exc) if "Nummern" in str(exc) or "Semester" in str(exc) else "Bitte nur Zahlen eingeben, z. B. 1 3 5-8.")
+    courses = courses_from(entries, chosen)
+    remember_mode(selection, [entries[n - 1] for n in chosen], all_entries)
+    print(f"\n{len(courses)} {'Kurs' if len(courses) == 1 else 'Kurse'} gespeichert in {settings.COURSES_FILE}:")
     for name, targets in courses.items():
         extra = f" (+ {len(targets) - 1} Gruppe{'n' if len(targets) > 2 else ''})" if len(targets) > 1 else ""
         print(f"  – {name}{extra}")
-    print("Neu auswählen (z. B. zum neuen Semester): ./run.sh --kurse-waehlen\n")
+    if settings.load()["course_mode"] == "aktuell":
+        print("Neue Kurse dieses Semesters kommen automatisch dazu; zum nächsten Semester wird")
+        print("automatisch umgestellt. Andere Auswahl: ./run.sh --kurse-waehlen\n")
+    else:
+        print("Zum nächsten Semester stellt der Downloader automatisch auf alle neuen Kurse um.")
+        print("Andere Auswahl: ./run.sh --kurse-waehlen\n")
+    return courses
+
+
+def refresh_courses(page: Page, saved: dict[str, list[str]]) -> dict[str, list[str]]:
+    """Follow the newest semester: add new courses (mode 'aktuell') or switch at a semester change."""
+    config = settings.load()
+    found = discover_courses(page)
+    if not found:
+        print("Hinweis: Kursliste auf ILIAS nicht lesbar – verwende die gespeicherte Auswahl.", flush=True)
+        return saved
+    all_entries = build_entries(found)
+    start = first_relevant_semester(all_entries)
+    if start is None:
+        return saved
+    label = semester_label(start)
+    current, _ = visible_entries(all_entries, False)
+    if config.get("course_semester") is None:
+        # Selection made by hand (or by an older version): remember the semester, change nothing.
+        config["course_semester"], config["course_mode"] = label, "manuell"
+        settings.save(config)
+        return saved
+    if label != config.get("course_semester"):
+        print(f"Semesterwechsel: Ab jetzt werden die Kurse ab {label} geladen.", flush=True)
+    elif config["course_mode"] != "aktuell":
+        return saved
+    fresh = courses_from(current, list(range(1, len(current) + 1)))
+    # Keep folder names and extra groups the user set in courses.json for courses that stay.
+    by_target = {target: name for name, targets in saved.items() for target in targets}
+    courses: dict[str, list[str]] = {}
+    for name, targets in fresh.items():
+        kept = by_target.get(targets[0])
+        if kept:
+            courses[kept] = list(dict.fromkeys(saved[kept] + targets))
+        else:
+            courses[name] = targets
+    added = [name for name in courses if name not in saved]
+    for name in added:
+        print(f"  + {name}", flush=True)
+    if courses != saved:
+        settings.save_courses(courses)
+        config = settings.load()
+        config["course_mode"], config["course_semester"] = "aktuell", label
+        settings.save(config)
     return courses
 
 
@@ -454,7 +556,9 @@ def main() -> None:
     parser.add_argument("--kurse-auflisten", dest="list_courses", action="store_true",
                         help="Nur anmelden und die gefundenen Kurse nummeriert anzeigen, nichts herunterladen")
     parser.add_argument("--kurse", dest="selection", metavar="AUSWAHL",
-                        help="Kurse ohne Rückfrage wählen: '1 3 5-8', 'aktuell' (neuestes Semester) oder 'alle'")
+                        help="Kurse ohne Rückfrage wählen: 'aktuell' (alle des neuesten Semesters) oder Nummern wie '1 3 5-8'")
+    parser.add_argument("--alle-semester", dest="all_semesters", action="store_true",
+                        help="Bei der Kursauswahl auch ältere Semester anzeigen")
     parser.add_argument("--browser", choices=("webkit", "chromium", "firefox"), default="webkit")
     parser.add_argument("--session-file", type=Path, help="Lokale ILIAS-Sitzungsdatei")
     parser.add_argument("--headless", action="store_true", help="Ohne Browserfenster; erfordert gültige Sitzung oder gespeicherte Zugangsdaten")
@@ -518,15 +622,17 @@ def main() -> None:
             found = discover_courses(page)
             if not found:
                 raise RuntimeError("Auf ILIAS wurden keine Kurse gefunden. Bist du in Kursen eingeschrieben?")
-            print_found(build_entries(found))
-            print("\nAuswahl übernehmen und herunterladen mit: ./run.sh --kurse '1 3 5-8'")
-            print("(oder --kurse aktuell für das neueste Semester, --kurse alle für alles)")
+            print_found(*visible_entries(build_entries(found), args.all_semesters))
+            print("\nAuswahl übernehmen und herunterladen mit: ./run.sh --kurse aktuell  (alle angezeigten)")
+            print("oder nur einzelne:                        ./run.sh --kurse '1 3 5-8'")
             context.close()
             browser.close()
             return
         if courses is None:
-            courses = choose_courses(discover_courses(page), args.selection)
+            courses = choose_courses(discover_courses(page), args.selection, args.all_semesters)
             settings.save_courses(courses)
+        else:
+            courses = refresh_courses(page, courses)
         total = 0
         for course_name, starts in courses.items():
             print(f"Kurs: {course_name}", flush=True)

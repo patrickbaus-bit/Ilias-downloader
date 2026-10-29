@@ -83,13 +83,16 @@ Du kannst den Ordner auch selbst öffnen: `open <PROJEKTORDNER>`. Meldet macOS, 
 ./run.sh --kurse-auflisten
 ```
 
-Ohne gespeicherte Zugangsdaten öffnet sich ein Browserfenster: Bitte die Person, sich dort mit Uni-ID und Passwort anzumelden; der Befehl wartet so lange. Danach erscheint eine nummerierte Liste aller Kurse, nach Semester sortiert (neuestes zuerst). Tutoriums- und Übungsgruppen hängen automatisch an ihrem Kurs und landen in dessen Ordner. Zeig der Person die Liste (mindestens das neueste Semester) und frag, welche Kurse sie möchte. Meist passt `aktuell` = alle Kurse des neuesten Semesters. Dann:
+Ohne gespeicherte Zugangsdaten öffnet sich ein Browserfenster: Bitte die Person, sich dort mit Uni-ID und Passwort anzumelden; der Befehl wartet so lange. Danach erscheint eine nummerierte Liste der Kurse des **laufenden Semesters** (HWS: September bis Februar, FSS: März bis August) plus schon vorhandener Kurse des nächsten; vergangene Semester blendet der Downloader automatisch aus. Tutoriums- und Übungsgruppen hängen an ihrem Kurs und landen in dessen Ordner. Zeig der Person die Liste und frag, ob sie alle Kurse möchte (empfohlen) oder nur einzelne. Dann:
 
 ```zsh
-./run.sh --kurse aktuell       # oder Nummern: --kurse "1 3 5-8", oder --kurse alle
+./run.sh --kurse aktuell        # alle angezeigten Kurse (empfohlen)
+./run.sh --kurse "1 3 5-8"      # nur einzelne Nummern aus der Liste
 ```
 
-Das speichert die Auswahl, lädt alle Materialien und erzeugt danach die Markdown-Kopien (falls eingeschaltet). Das dauert je nach Kursmenge einige Minuten bis über eine Stunde; lass den Befehl durchlaufen und sag der Person, dass der Mac so lange wach bleiben sollte.
+Mit `aktuell` folgt der Downloader künftig von selbst dem Semester: Neue Kurse (auch des nächsten Semesters) kommen bei jedem Abgleich dazu, und nach Semesterende fallen die alten weg. Bei einer Auswahl einzelner Nummern bleibt sie bis zum Semesterwechsel fest; danach nimmt er alle Kurse des neuen Semesters. Ältere Semester nur bei ausdrücklichem Wunsch: `./run.sh --kurse-auflisten --alle-semester`, danach `./run.sh --alle-semester --kurse "…"`.
+
+Der erste Abgleich lädt alle Materialien und erzeugt danach die Markdown-Kopien (falls eingeschaltet). Das dauert grob 3 bis 5 Minuten pro Kurs; lass den Befehl durchlaufen und sag der Person, dass der Mac so lange wach bleiben sollte.
 
 ### 7. Abschluss prüfen
 
@@ -101,7 +104,7 @@ Prüfe, dass Ordner, Kurse und (falls gewünscht) die Uhrzeit stimmen, dass im M
 
 - wo ihre Dateien und die Markdown-Kopien liegen,
 - falls ein täglicher Abgleich eingerichtet ist: dass sich zur Uhrzeit ein Terminal-Fenster öffnet, das sie nach dem Lauf schließen kann,
-- dass sie zum neuen Semester einfach dich (oder eine andere KI) bitten kann, die Kurse neu auszuwählen (`./run.sh --kurse-auflisten`, dann `./run.sh --kurse aktuell`),
+- dass der Downloader zum neuen Semester automatisch auf die neuen Kurse umstellt (alte Ordner bleiben liegen),
 - dass sie Passwortänderungen per Doppelklick auf „Zugangsdaten eingeben.command“ einträgt.
 
 ## Befehlsübersicht
@@ -117,8 +120,8 @@ Prüfe, dass Ordner, Kurse und (falls gewünscht) die Uhrzeit stimmen, dass im M
 | `./run.sh` | Abgleich mit sichtbarem Browserfenster |
 | `./run.sh --headless` | Abgleich ohne Fenster (braucht Zugangsdaten oder gültige Sitzung) |
 | `./run.sh --markdown` / `--kein-markdown` | Markdown diesmal erzwingen / auslassen (Standard: laut Einstellung) |
-| `./run.sh --kurse-auflisten` | Nur Kurse anzeigen, nichts laden |
-| `./run.sh --kurse aktuell` / `--kurse "1 3"` | Kurse ohne Rückfrage wählen (neuestes Semester / Nummern) und laden |
+| `./run.sh --kurse-auflisten [--alle-semester]` | Nur Kurse anzeigen (neuestes Semester bzw. alle), nichts laden |
+| `./run.sh --kurse aktuell` / `--kurse "1 3"` | Kurse wählen (alle des neuesten Semesters, folgt künftig automatisch / nur diese Nummern) und laden |
 | `./markdown.sh [--retry-failed]` | Markdown-Kopien erzeugen |
 
 Alles Persönliche liegt in `~/Library/Application Support/ILIAS Downloader/` (Python-Umgebung, `settings.json`, `courses.json`, ILIAS-Sitzung, Protokoll `ilias-downloader.log`), nicht im Repository.
