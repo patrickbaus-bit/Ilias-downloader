@@ -192,23 +192,90 @@ def discover_courses(page: Page) -> dict[str, str]:
     return found
 
 
-def sorted_found(found: dict[str, str]) -> list[tuple[str, str]]:
-    """Courses first, then groups, each alphabetically – the numbering shown to the user."""
-    return sorted(found.items(), key=lambda item: (item[0].startswith("grp"), item[1].casefold()))
+SEMESTER = re.compile(r"\((HWS|FSS|WT|ST|WS|SS)\s*(\d{4})(?:/\d{2,4})?\)", re.I)
+# Order within a year: spring/summer before autumn/winter.
+SEMESTER_ORDER = {"fss": 0, "st": 0, "ss": 0, "hws": 1, "wt": 1, "ws": 1}
 
 
-def print_found(items: list[tuple[str, str]]) -> None:
-    print("\nDiese Kurse und Gruppen habe ich auf ILIAS gefunden:\n")
-    for number, (target, title) in enumerate(items, 1):
-        kind = "Gruppe" if target.startswith("grp") else "Kurs"
-        print(f"  {number:>2}. {title}  ({kind}, {target})")
+def semester_key(title: str) -> tuple[int, int] | None:
+    match = SEMESTER.search(title)
+    if not match:
+        return None
+    return int(match.group(2)), SEMESTER_ORDER[match.group(1).casefold()]
 
 
-def parse_selection(answer: str, count: int) -> list[int]:
-    """Parse '1 3 5-8' or 'alle' into 1-based numbers; raise ValueError on bad input."""
-    answer = answer.strip()
-    if not answer or answer.casefold() in ("alle", "all"):
+def base_title(title: str) -> str:
+    """Course name without ILIAS tags like [V], [1. PG] or (HWS 2026), for matching groups."""
+    title = re.sub(r"\[[^\]]*\]|\([^)]*\)", " ", title)
+    return re.sub(r"\s+", " ", title).strip(" -–").casefold()
+
+
+def folder_name(title: str) -> str:
+    """Readable folder: drop [..] tags, keep the semester, replace slashes."""
+    name = re.sub(r"\s*\[[^\]]*\]", "", title)
+    name = re.sub(r"\s*/+\s*", " - ", name)
+    name = re.sub(r"\s*:\s*", " - ", name)
+    return re.sub(r"\s+", " ", name).strip()
+
+
+def build_entries(found: dict[str, str]) -> list[dict]:
+    """Group the found objects into selectable entries.
+
+    Tutorial/exercise groups belong to the course they were created in: same base name
+    and the closest smaller ILIAS id. They are listed under that course and downloaded
+    into its folder. Groups without such a course stay separate entries.
+    """
+    courses = [{"title": title, "targets": [target], "groups": [], "semester": semester_key(title),
+                "id": int(target.split("/")[1]), "base": base_title(title)}
+               for target, title in found.items() if target.startswith("crs/")]
+    loose = []
+    for target, title in found.items():
+        if not target.startswith("grp/"):
+            continue
+        gid, gbase = int(target.split("/")[1]), base_title(title)
+        parents = [c for c in courses if c["id"] < gid and (gbase.startswith(c["base"]) or c["base"].startswith(gbase))]
+        if parents:
+            parent = max(parents, key=lambda c: c["id"])
+            parent["targets"].append(target)
+            parent["groups"].append(title)
+        else:
+            loose.append({"title": title, "targets": [target], "groups": [], "semester": None,
+                          "id": gid, "base": gbase})
+    entries = courses + loose
+    # Newest semester first, then alphabetically; entries without a semester at the end.
+    entries.sort(key=lambda e: (e["semester"] is None, tuple(-x for x in (e["semester"] or (0, 0))), e["title"].casefold()))
+    return entries
+
+
+def semester_label(key: tuple[int, int] | None) -> str:
+    if key is None:
+        return "Ohne Semesterangabe"
+    return f"{'HWS' if key[1] else 'FSS'} {key[0]}"
+
+
+def print_found(entries: list[dict]) -> None:
+    print("\nDiese Kurse habe ich auf ILIAS gefunden (Tutoriums-/Übungsgruppen hängen am Kurs):")
+    current = object()
+    for number, entry in enumerate(entries, 1):
+        if entry["semester"] != current:
+            current = entry["semester"]
+            print(f"\n  {semester_label(current)}")
+        print(f"  {number:>3}. {entry['title']}")
+        for group in entry["groups"]:
+            print(f"         + Gruppe: {group}")
+
+
+def parse_selection(answer: str, entries: list[dict]) -> list[int]:
+    """Parse '1 3 5-8', 'alle' or 'aktuell' into 1-based numbers; raise ValueError on bad input."""
+    count = len(entries)
+    answer = answer.strip().casefold()
+    if not answer or answer in ("alle", "all"):
         return list(range(1, count + 1))
+    if answer in ("aktuell", "current"):
+        newest = max((e["semester"] for e in entries if e["semester"]), default=None)
+        if newest is None:
+            raise ValueError("Keine Semesterangaben gefunden – bitte Nummern angeben.")
+        return [n for n, e in enumerate(entries, 1) if e["semester"] == newest]
     chosen: list[int] = []
     for part in re.split(r"[\s,;]+", answer):
         if "-" in part:
@@ -225,33 +292,34 @@ def choose_courses(found: dict[str, str], selection: str | None = None) -> dict[
     """Return {folder name: [targets]}; asks in the terminal unless `selection` is given."""
     if not found:
         raise RuntimeError("Auf ILIAS wurden keine Kurse gefunden. Bist du in Kursen eingeschrieben?")
-    items = sorted_found(found)
+    entries = build_entries(found)
     if selection is not None:
         try:
-            chosen = parse_selection(selection, len(items))
+            chosen = parse_selection(selection, entries)
         except ValueError as exc:
-            print_found(items)
+            print_found(entries)
             raise RuntimeError(f"Ungültige Kursauswahl '{selection}': {exc}") from None
     else:
-        print_found(items)
+        print_found(entries)
         print("\nWelche sollen heruntergeladen werden? Nummern mit Leerzeichen oder Komma trennen,")
-        print("Bereiche mit Bindestrich (z. B. 1 3 5-8). Enter ohne Eingabe = alle.")
+        print("Bereiche mit Bindestrich (z. B. 1 3 5-8), 'aktuell' = neuestes Semester, Enter = alle.")
         while True:
             try:
-                chosen = parse_selection(input("> "), len(items))
+                chosen = parse_selection(input("> "), entries)
                 break
             except ValueError as exc:
-                print(str(exc) if "Nummern" in str(exc) else "Bitte nur Zahlen eingeben, z. B. 1 3 5-8.")
+                print(str(exc) if "Nummern" in str(exc) or "Semester" in str(exc) else "Bitte nur Zahlen eingeben, z. B. 1 3 5-8.")
     courses: dict[str, list[str]] = {}
     for n in chosen:
-        target, title = items[n - 1]
-        name = safe_name(re.sub(r"\s*/\s*", " - ", title), target.replace("/", "-"))
+        entry = entries[n - 1]
+        name = safe_name(folder_name(entry["title"]), entry["targets"][0].replace("/", "-"))
         while name in courses:
             name += " (2)"
-        courses[name] = [target]
+        courses[name] = entry["targets"]
     print(f"\n{len(courses)} Kurse gespeichert in {settings.COURSES_FILE}:")
-    for name in courses:
-        print(f"  – {name}")
+    for name, targets in courses.items():
+        extra = f" (+ {len(targets) - 1} Gruppe{'n' if len(targets) > 2 else ''})" if len(targets) > 1 else ""
+        print(f"  – {name}{extra}")
     print("Neu auswählen (z. B. zum neuen Semester): ./run.sh --kurse-waehlen\n")
     return courses
 
@@ -384,7 +452,7 @@ def main() -> None:
     parser.add_argument("--kurse-auflisten", dest="list_courses", action="store_true",
                         help="Nur anmelden und die gefundenen Kurse nummeriert anzeigen, nichts herunterladen")
     parser.add_argument("--kurse", dest="selection", metavar="AUSWAHL",
-                        help="Kurse ohne Rückfrage wählen, z. B. '1 3 5-8' oder 'alle' (Nummern aus --kurse-auflisten)")
+                        help="Kurse ohne Rückfrage wählen: '1 3 5-8', 'aktuell' (neuestes Semester) oder 'alle'")
     parser.add_argument("--browser", choices=("webkit", "chromium", "firefox"), default="webkit")
     parser.add_argument("--session-file", type=Path, help="Lokale ILIAS-Sitzungsdatei")
     parser.add_argument("--headless", action="store_true", help="Ohne Browserfenster; erfordert gültige Sitzung oder gespeicherte Zugangsdaten")
@@ -424,7 +492,7 @@ def main() -> None:
             raise RuntimeError("ILIAS-Anmeldung erforderlich. Bitte Zugangsdaten in der App speichern "
                                "oder mit sichtbarem Browserfenster starten.")
         if not logged_in and not submitted:
-            print("Bitte im geöffneten ILIAS-Fenster anmelden. Der Abgleich beginnt danach automatisch.", flush=True)
+            print("Bitte im geöffneten ILIAS-Fenster anmelden. Danach geht es automatisch weiter.", flush=True)
         deadline = 60 if args.headless else None
         waited = 0
         while True:
@@ -445,11 +513,12 @@ def main() -> None:
             page.wait_for_timeout(1000)
             waited += 1
         if args.list_courses:
-            items = sorted_found(discover_courses(page))
-            if not items:
+            found = discover_courses(page)
+            if not found:
                 raise RuntimeError("Auf ILIAS wurden keine Kurse gefunden. Bist du in Kursen eingeschrieben?")
-            print_found(items)
-            print("\nAuswahl übernehmen und herunterladen mit: ./run.sh --kurse '1 3 5-8'  (oder 'alle')")
+            print_found(build_entries(found))
+            print("\nAuswahl übernehmen und herunterladen mit: ./run.sh --kurse '1 3 5-8'")
+            print("(oder --kurse aktuell für das neueste Semester, --kurse alle für alles)")
             context.close()
             browser.close()
             return

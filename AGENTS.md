@@ -83,10 +83,10 @@ Du kannst den Ordner auch selbst öffnen: `open <PROJEKTORDNER>`. Meldet macOS, 
 ./run.sh --kurse-auflisten
 ```
 
-Ohne gespeicherte Zugangsdaten öffnet sich ein Browserfenster: Bitte die Person, sich dort mit Uni-ID und Passwort anzumelden; der Befehl wartet so lange. Danach erscheint eine nummerierte Liste aller Kurse und Gruppen. Zeig sie der Person und frag, welche sie möchte (oft nur die des aktuellen Semesters; Tutoriumsgruppen sind meist sinnvoll). Dann:
+Ohne gespeicherte Zugangsdaten öffnet sich ein Browserfenster: Bitte die Person, sich dort mit Uni-ID und Passwort anzumelden; der Befehl wartet so lange. Danach erscheint eine nummerierte Liste aller Kurse, nach Semester sortiert (neuestes zuerst). Tutoriums- und Übungsgruppen hängen automatisch an ihrem Kurs und landen in dessen Ordner. Zeig der Person die Liste (mindestens das neueste Semester) und frag, welche Kurse sie möchte. Meist passt `aktuell` = alle Kurse des neuesten Semesters. Dann:
 
 ```zsh
-./run.sh --kurse "1 3 5-8"     # oder: --kurse alle
+./run.sh --kurse aktuell       # oder Nummern: --kurse "1 3 5-8", oder --kurse alle
 ```
 
 Das speichert die Auswahl, lädt alle Materialien und erzeugt danach die Markdown-Kopien (falls eingeschaltet). Das dauert je nach Kursmenge einige Minuten bis über eine Stunde; lass den Befehl durchlaufen und sag der Person, dass der Mac so lange wach bleiben sollte.
@@ -101,7 +101,7 @@ Prüfe, dass Ordner, Kurse und (falls gewünscht) die Uhrzeit stimmen, dass im M
 
 - wo ihre Dateien und die Markdown-Kopien liegen,
 - falls ein täglicher Abgleich eingerichtet ist: dass sich zur Uhrzeit ein Terminal-Fenster öffnet, das sie nach dem Lauf schließen kann,
-- dass sie zum neuen Semester einfach dich (oder eine andere KI) bitten kann, die Kurse neu auszuwählen (`./run.sh --kurse-auflisten` und `--kurse …`),
+- dass sie zum neuen Semester einfach dich (oder eine andere KI) bitten kann, die Kurse neu auszuwählen (`./run.sh --kurse-auflisten`, dann `./run.sh --kurse aktuell`),
 - dass sie Passwortänderungen per Doppelklick auf „Zugangsdaten eingeben.command“ einträgt.
 
 ## Befehlsübersicht
@@ -118,7 +118,7 @@ Prüfe, dass Ordner, Kurse und (falls gewünscht) die Uhrzeit stimmen, dass im M
 | `./run.sh --headless` | Abgleich ohne Fenster (braucht Zugangsdaten oder gültige Sitzung) |
 | `./run.sh --markdown` / `--kein-markdown` | Markdown diesmal erzwingen / auslassen (Standard: laut Einstellung) |
 | `./run.sh --kurse-auflisten` | Nur Kurse anzeigen, nichts laden |
-| `./run.sh --kurse "1 3"` | Kurse ohne Rückfrage wählen und laden |
+| `./run.sh --kurse aktuell` / `--kurse "1 3"` | Kurse ohne Rückfrage wählen (neuestes Semester / Nummern) und laden |
 | `./markdown.sh [--retry-failed]` | Markdown-Kopien erzeugen |
 
 Alles Persönliche liegt in `~/Library/Application Support/ILIAS Downloader/` (Python-Umgebung, `settings.json`, `courses.json`, ILIAS-Sitzung, Protokoll `ilias-downloader.log`), nicht im Repository.

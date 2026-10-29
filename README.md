@@ -71,7 +71,7 @@ Danach fragt er:
 ./run.sh
 ```
 
-Beim ersten Mal listet der Downloader alle Kurse und Gruppen auf, in denen du auf ILIAS eingeschrieben bist. Du gibst die Nummern der Kurse ein, die du haben willst (z. B. `1 3 5-8`, oder Enter für alle). Danach beginnt der Download.
+Beim ersten Mal listet der Downloader alle Kurse auf, in denen du auf ILIAS eingeschrieben bist, nach Semester sortiert. Tutoriums- und Übungsgruppen hängen automatisch an ihrem Kurs. Du gibst die Nummern der Kurse ein, die du haben willst (z. B. `1 3 5-8`), `aktuell` für alle Kurse des neuesten Semesters oder Enter für alles. Danach beginnt der Download.
 
 Falls macOS fragt, ob das Terminal auf den Ordner „Dokumente“ zugreifen darf: **Erlauben** klicken.
 
@@ -84,7 +84,7 @@ Falls macOS fragt, ob das Terminal auf den Ordner „Dokumente“ zugreifen darf
 | Neue Materialien laden (mit sichtbarem Browserfenster) | `./run.sh` |
 | Ohne Browserfenster (braucht gespeicherte Zugangsdaten) | `./run.sh --headless` |
 | Markdown diesmal auslassen / erzwingen (Standard: laut Einstellung) | `./run.sh --kein-markdown` / `./run.sh --markdown` |
-| Kurse neu auswählen (z. B. neues Semester) | `./run.sh --kurse-waehlen` |
+| Kurse neu auswählen (z. B. neues Semester) | `./run.sh --kurse-waehlen` oder direkt `./run.sh --kurse aktuell` |
 | Nur Markdown-Kopien erzeugen | `./markdown.sh` |
 | Fehlgeschlagene Markdown-Dateien erneut versuchen | `./markdown.sh --retry-failed` |
 | Alles neu einrichten | `./setup.sh` |
