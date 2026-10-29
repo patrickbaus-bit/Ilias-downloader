@@ -18,42 +18,37 @@ Führe die Schritte der Reihe nach aus. Prüfe nach jedem Schritt die Ausgabe, b
 
 ```zsh
 sw_vers -productVersion   # macOS 13 oder neuer
-python3 --version          # 3.10 oder neuer
 ```
 
-Fehlt Python 3.10+, frag, ob du es über Homebrew installieren darfst. Ist Homebrew nicht da (`command -v brew` leer), bitte die Person, den Installationsbefehl von https://brew.sh selbst in ihr Terminal zu kopieren (er fragt nach ihrem Mac-Passwort), und danach:
-
-```zsh
-brew install python@3.12
-```
+Mehr braucht es nicht. Homebrew, Git, Xcode oder ein vorinstalliertes Python sind **nicht** nötig: Der Installer holt sich Python selbst über das Werkzeug `uv` in den Benutzerordner, ohne Admin-Passwort.
 
 ### 2. Repository holen
 
-Wenn du nicht schon im Projektordner bist (erkennbar an `install.sh` und dieser Datei):
+Wenn du nicht schon im Projektordner bist (erkennbar an `install.sh` und dieser Datei), lade es ohne Git herunter (Git würde auf frischen Macs erst die Xcode-Entwicklerwerkzeuge installieren wollen):
 
 ```zsh
-cd ~/Documents
-git clone https://github.com/patrickbaus-bit/Ilias-downloader.git
-cd Ilias-downloader
+mkdir -p ~/Documents && cd ~/Documents
+curl -L -o ilias-downloader.zip https://github.com/patrickbaus-bit/Ilias-downloader/archive/refs/heads/main.zip
+unzip -q -o ilias-downloader.zip && rm ilias-downloader.zip
+cd Ilias-downloader-main
 ```
 
-Ohne Git: Die Person lädt auf GitHub über **Code → Download ZIP** herunter und entpackt; dann in den entpackten Ordner wechseln.
+Ist Git bereits vorhanden (`git --version` funktioniert ohne Dialog), geht auch `git clone https://github.com/patrickbaus-bit/Ilias-downloader.git`; der Ordner heißt dann `Ilias-downloader`. Merke dir den absoluten Pfad (`pwd`), du brauchst ihn später.
 
 ### 3. Installieren
 
 ```zsh
-chmod +x install.sh
-./install.sh --ohne-einrichtung
+zsh install.sh --ohne-einrichtung
 ```
 
-Dauert beim ersten Mal einige Minuten (Python-Pakete und ein WebKit-Browser für Playwright). Am Ende muss „Installation abgeschlossen“ stehen.
+Dauert beim ersten Mal einige Minuten (Python, Pakete und ein WebKit-Browser für die Anmeldung). Am Ende muss „Installation abgeschlossen“ stehen.
 
 ### 4. Die Person fragen und einstellen
 
-Frag die Person (eine kurze Nachricht mit allen Fragen):
+Frag die Person (eine kurze Nachricht mit allen Fragen, Vorschläge gleich mitgeben):
 
 - Wohin sollen die Kursmaterialien? Vorschlag: `~/Documents/Uni/ILIAS`
-- Sollen zusätzlich Markdown-Kopien für KI-Tools entstehen, und wenn ja, wohin? Vorschlag: `~/Documents/Uni/KI-Markdown` (darf **nicht** im Materialordner liegen)
+- Sollen nach jedem Abgleich Markdown-Kopien für KI-Tools entstehen (empfohlen), und wenn ja, wohin? Vorschlag: `~/Documents/Uni/KI-Markdown` (darf **nicht** im Materialordner liegen)
 - Soll der Mac täglich automatisch nach neuen Materialien schauen, und um wie viel Uhr?
 
 Dann ohne Rückfragen einstellen, z. B.:
@@ -66,33 +61,31 @@ Dann ohne Rückfragen einstellen, z. B.:
            --taeglich-um 09:00
 ```
 
-Kein täglicher Abgleich gewünscht: `--taeglich-um` weglassen. `--hintergrund ja` wirkt nur, wenn Zugangsdaten gespeichert sind; sonst öffnet sich beim täglichen Lauf ein Browserfenster zum Anmelden.
+Das legt beide Ordner sofort an. `--markdown-nach-abgleich ja` gilt für **jeden** Abgleich, auch den ersten und alle manuellen. Kein täglicher Abgleich gewünscht: `--taeglich-um` weglassen. `--hintergrund ja` betrifft nur den täglichen Lauf und wirkt nur mit gespeicherten Zugangsdaten; sonst öffnet sich dabei ein Browserfenster zum Anmelden.
 
 ### 5. Zugangsdaten (macht die Person selbst)
 
-Erkläre: Mit gespeicherter Uni-ID und Passwort meldet sich der Downloader selbst an und kann im Hintergrund laufen. Ohne öffnet sich jedes Mal ein Fenster zum Anmelden. Beides ist in Ordnung.
+Erkläre kurz: Mit gespeicherter Uni-ID und Passwort meldet sich der Downloader selbst an und der tägliche Abgleich läuft ohne Zutun. Ohne öffnet sich jedes Mal ein Fenster, in dem sie sich anmeldet. Beides ist in Ordnung; empfehlenswert ist Speichern.
 
-Wenn sie speichern möchte, sag ihr wörtlich, was sie tun soll:
+Wenn sie speichern möchte, sag ihr (Pfad durch den echten Projektordner ersetzen):
 
-> Öffne das Programm „Terminal“ (Cmd + Leertaste, „Terminal“ tippen), füge diese Zeile ein und drück Enter:
-> `cd <PROJEKTORDNER> && ./setup.sh --zugangsdaten`
-> Gib dort deine Uni-ID und dein Passwort ein. Das Passwort wird beim Tippen nicht angezeigt, das ist normal.
+> Öffne im Finder den Ordner `<PROJEKTORDNER>` und mach einen **Doppelklick auf „Zugangsdaten eingeben.command“**. Es öffnet sich ein Terminal-Fenster. Gib dort deine Uni-ID ein (z. B. `mmustermann`) und dann dein Passwort. Das Passwort wird beim Tippen nicht angezeigt, das ist normal. Sag mir Bescheid, wenn dort „Gespeichert“ steht.
 
-Ersetze `<PROJEKTORDNER>` durch den echten absoluten Pfad (`pwd`). Warte, bis sie Bescheid gibt, und prüfe dann mit `./setup.sh --status`, ob `zugangsdaten_gespeichert_fuer` gesetzt ist.
+Du kannst den Ordner auch selbst öffnen: `open <PROJEKTORDNER>`. Meldet macOS, die Datei könne nicht geöffnet werden: Rechtsklick → **Öffnen** → **Öffnen**. Warte auf ihre Rückmeldung und prüfe mit `./setup.sh --status`, ob `zugangsdaten_gespeichert_fuer` gesetzt ist.
 
-### 6. Kurse auswählen
+### 6. Kurse auswählen und erster Abgleich
 
 ```zsh
 ./run.sh --kurse-auflisten
 ```
 
-Ohne gespeicherte Zugangsdaten öffnet sich ein Browserfenster: Bitte die Person, sich dort anzumelden; der Befehl wartet so lange. Danach erscheint eine nummerierte Liste aller Kurse und Gruppen. Zeig sie der Person und frag, welche sie möchte (oft nur die des aktuellen Semesters). Dann:
+Ohne gespeicherte Zugangsdaten öffnet sich ein Browserfenster: Bitte die Person, sich dort mit Uni-ID und Passwort anzumelden; der Befehl wartet so lange. Danach erscheint eine nummerierte Liste aller Kurse und Gruppen. Zeig sie der Person und frag, welche sie möchte (oft nur die des aktuellen Semesters; Tutoriumsgruppen sind meist sinnvoll). Dann:
 
 ```zsh
 ./run.sh --kurse "1 3 5-8"     # oder: --kurse alle
 ```
 
-Das speichert die Auswahl und startet den ersten Download. Je nach Kursmenge dauert das einige Minuten bis über eine Stunde; lass den Befehl durchlaufen.
+Das speichert die Auswahl, lädt alle Materialien und erzeugt danach die Markdown-Kopien (falls eingeschaltet). Das dauert je nach Kursmenge einige Minuten bis über eine Stunde; lass den Befehl durchlaufen und sag der Person, dass der Mac so lange wach bleiben sollte.
 
 ### 7. Abschluss prüfen
 
@@ -100,28 +93,26 @@ Das speichert die Auswahl und startet den ersten Download. Je nach Kursmenge dau
 ./setup.sh --status
 ```
 
-Prüfe, dass Ordner, Kurse und (falls gewünscht) die Uhrzeit stimmen, und dass im Materialordner Kursordner mit Dateien liegen. Fasse für die Person in wenigen Sätzen zusammen:
+Prüfe, dass Ordner, Kurse und (falls gewünscht) die Uhrzeit stimmen, dass im Materialordner Kursordner mit Dateien liegen und im Markdown-Ordner `INDEX.md` existiert. Öffne beide Ordner für die Person (`open <Ordner>`). Fasse in wenigen Sätzen zusammen:
 
-- wo ihre Dateien liegen,
-- dass `./run.sh` jederzeit neue Materialien lädt (im Projektordner ausführen),
-- dass zum neuen Semester `./run.sh --kurse-waehlen` die Kurse neu auswählt,
-- falls ein täglicher Abgleich eingerichtet ist: dass sich zur Uhrzeit ein Terminal-Fenster öffnet und sie es nach dem Lauf schließen kann.
-
-Wenn Markdown aktiv ist und noch keine Kopien da sind, kannst du sie gleich erzeugen: `./markdown.sh` (dauert bei vielen PDFs länger).
+- wo ihre Dateien und die Markdown-Kopien liegen,
+- falls ein täglicher Abgleich eingerichtet ist: dass sich zur Uhrzeit ein Terminal-Fenster öffnet, das sie nach dem Lauf schließen kann,
+- dass sie zum neuen Semester einfach dich (oder eine andere KI) bitten kann, die Kurse neu auszuwählen (`./run.sh --kurse-auflisten` und `--kurse …`),
+- dass sie Passwortänderungen per Doppelklick auf „Zugangsdaten eingeben.command“ einträgt.
 
 ## Befehlsübersicht
 
 | Befehl | Zweck |
 |---|---|
-| `./install.sh --ohne-einrichtung` | Installieren bzw. aktualisieren, ohne Rückfragen |
+| `zsh install.sh --ohne-einrichtung` | Installieren bzw. aktualisieren, ohne Rückfragen |
 | `./setup.sh --status` | Aktuelle Einrichtung als JSON |
-| `./setup.sh --materialordner P --markdown-ordner P --hintergrund ja\|nein --markdown-nach-abgleich ja\|nein --taeglich-um HH:MM` | Einstellen ohne Rückfragen (nur angegebene Werte ändern sich) |
+| `./setup.sh --materialordner P --markdown-ordner P --hintergrund ja\|nein --markdown-nach-abgleich ja\|nein --taeglich-um HH:MM` | Einstellen ohne Rückfragen (nur angegebene Werte ändern sich, Ordner werden angelegt) |
 | `./setup.sh --zeitplan-entfernen` | Täglichen Abgleich ausschalten |
-| `./setup.sh --zugangsdaten` | **Nur die Person selbst**, fragt verdeckt nach dem Passwort |
+| „Zugangsdaten eingeben.command“ (Doppelklick) bzw. `./setup.sh --zugangsdaten` | **Nur die Person selbst**, fragt verdeckt nach dem Passwort |
 | `./setup.sh --zugangsdaten-loeschen` | Zugangsdaten aus dem Schlüsselbund löschen |
 | `./run.sh` | Abgleich mit sichtbarem Browserfenster |
 | `./run.sh --headless` | Abgleich ohne Fenster (braucht Zugangsdaten oder gültige Sitzung) |
-| `./run.sh --markdown` | Nach dem Abgleich Markdown erzeugen |
+| `./run.sh --markdown` / `--kein-markdown` | Markdown diesmal erzwingen / auslassen (Standard: laut Einstellung) |
 | `./run.sh --kurse-auflisten` | Nur Kurse anzeigen, nichts laden |
 | `./run.sh --kurse "1 3"` | Kurse ohne Rückfrage wählen und laden |
 | `./markdown.sh [--retry-failed]` | Markdown-Kopien erzeugen |
@@ -133,8 +124,9 @@ Alles Persönliche liegt in `~/Library/Application Support/ILIAS Downloader/` (P
 | Meldung / Problem | Lösung |
 |---|---|
 | `Bitte zuerst ./install.sh ausführen` | Schritt 3 wiederholen und die Ausgabe auf Fehler prüfen. |
-| `pip` scheitert beim Bauen eines Pakets | Python-Version prüfen; mit Homebrew-Python 3.12 neu installieren: `rm -rf "$HOME/Library/Application Support/ILIAS Downloader/venv"` und `./install.sh --ohne-einrichtung`. |
-| `ILIAS-Anmeldung fehlgeschlagen` | Uni-ID/Passwort falsch. Person führt `./setup.sh --zugangsdaten` erneut aus. Nicht mehrfach hintereinander probieren (Kontosperre). |
+| `permission denied: ./run.sh` | `zsh install.sh --ohne-einrichtung` erneut ausführen (setzt die Ausführungsrechte). |
+| Installation von uv oder Paketen scheitert | Internetverbindung prüfen (Uni-WLAN/VPN kann blockieren), dann `rm -rf "$HOME/Library/Application Support/ILIAS Downloader/venv"` und `zsh install.sh --ohne-einrichtung`. |
+| `ILIAS-Anmeldung fehlgeschlagen` | Uni-ID/Passwort falsch. Person trägt sie per Doppelklick auf „Zugangsdaten eingeben.command“ neu ein. Nicht mehrfach hintereinander probieren (Kontosperre). |
 | `ILIAS verlangt einen weiteren Anmeldeschritt` | `./run.sh` (mit Fenster) starten, Person schließt die Anmeldung selbst ab. |
 | `Auf ILIAS wurden keine Kurse gefunden` | Person soll prüfen, ob sie auf ILIAS unter „Meine Kurse und Gruppen“ Kurse hat. Sonst Issue auf GitHub. |
 | `Operation not permitted` beim Ordner „Dokumente“ | Systemeinstellungen → Datenschutz & Sicherheit → Dateien und Ordner → dem Terminal (bzw. deiner App) „Dokumente“ erlauben. Alternativ einen Ordner außerhalb von Dokumente wählen. |

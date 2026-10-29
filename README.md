@@ -7,7 +7,7 @@ Lädt automatisch alle Materialien aus deinen ILIAS-Kursen auf deinen Mac, sorti
 - Läuft auf Wunsch jeden Tag automatisch zu einer festen Uhrzeit.
 - Uni-ID und Passwort bleiben im macOS-Schlüsselbund. Sie werden nirgendwohin geschickt außer an das Uni-Login `idp.uni-mannheim.de`.
 
-**Voraussetzungen:** ein Mac (macOS 13 oder neuer, Apple-Silicon oder Intel) und Python 3.10 oder neuer.
+**Voraussetzungen:** ein Mac mit macOS 13 oder neuer (Apple-Silicon oder Intel) und Internet. Python, Homebrew oder Admin-Rechte brauchst du nicht, der Installer holt sich alles Nötige selbst.
 
 ---
 
@@ -23,10 +23,16 @@ Lade das Repository nach ~/Documents herunter, lies zuerst die Datei AGENTS.md
 und folge genau dieser Anleitung. Frag mich, wenn du eine Entscheidung von mir brauchst.
 ```
 
-Der Assistent installiert alles, fragt dich nach deinen Wünschen (Ordner, Uhrzeit) und zeigt dir die Liste deiner Kurse zur Auswahl. Zwei Dinge machst du immer selbst, und die KI sagt dir jeweils, wann:
+Das passiert danach, und das machst du dabei:
 
-- **Dein Uni-Passwort** gibst du nie in den Chat ein. Die KI gibt dir einen Befehl, den du in dein Terminal-Fenster kopierst; dort tippst du das Passwort verdeckt ein, und es landet nur im macOS-Schlüsselbund.
-- **Die ILIAS-Anmeldung** im Browserfenster (falls du kein Passwort speichern willst).
+1. **Erlauben.** Die KI fragt vor jedem Befehl um Erlaubnis. Fragt macOS, ob die App auf „Dokumente“ zugreifen darf: **Erlauben**.
+2. **Drei Fragen beantworten:** wohin die Kursmaterialien sollen, ob (und wohin) Markdown-Kopien für KI-Tools entstehen sollen, und ob der Mac täglich nach neuen Materialien schauen soll und wann. Die KI macht Vorschläge, „passt so“ reicht.
+3. **Zugangsdaten speichern (empfohlen):** Die KI bittet dich, im Downloader-Ordner auf **„Zugangsdaten eingeben.command“** doppelzuklicken. Im Fenster, das sich öffnet, tippst du Uni-ID und Passwort ein (das Passwort bleibt beim Tippen unsichtbar) und sagst der KI Bescheid. **Dein Passwort gibst du nie in den Chat ein**, es landet nur im macOS-Schlüsselbund.
+4. **Falls du nichts gespeichert hast:** im Browserfenster, das sich öffnet, ganz normal beim Uni-Login anmelden.
+5. **Kurse auswählen:** Die KI zeigt dir eine nummerierte Liste deiner ILIAS-Kurse. Du antwortest z. B. „1, 3 und 5 bis 8“.
+6. **Warten:** Der erste Download (samt Markdown) dauert je nach Menge Minuten bis über eine Stunde. Der Mac sollte so lange wach bleiben.
+
+Danach musst du nichts mehr tun.
 
 Nutzt du eine KI ohne Terminal-Zugriff (z. B. ChatGPT im Browser), funktioniert der gleiche Text auch: Dann erklärt sie dir Schritt für Schritt, was du ins Terminal kopieren sollst.
 
@@ -34,48 +40,34 @@ Nutzt du eine KI ohne Terminal-Zugriff (z. B. ChatGPT im Browser), funktioniert 
 
 ## Installation von Hand (einmalig, ca. 5 Minuten)
 
-### 1. Python installieren (falls noch nicht vorhanden)
+### 1. Downloader herunterladen
 
-Öffne das Programm **Terminal** (Cmd + Leertaste → „Terminal“) und prüfe:
-
-```zsh
-python3 --version
-```
-
-Steht dort `Python 3.10` oder höher, kannst du zu Schritt 2 springen. Sonst installiere zuerst [Homebrew](https://brew.sh) (Befehl von der Website ins Terminal kopieren) und danach Python:
+Öffne das Programm **Terminal** (Cmd + Leertaste → „Terminal“) und kopiere diese Zeilen hinein:
 
 ```zsh
-brew install python@3.12
+mkdir -p ~/Documents && cd ~/Documents
+curl -L -o ilias-downloader.zip https://github.com/patrickbaus-bit/Ilias-downloader/archive/refs/heads/main.zip
+unzip -q -o ilias-downloader.zip && rm ilias-downloader.zip
 ```
 
-### 2. Downloader herunterladen
+Der Ordner heißt dann `Dokumente/Ilias-downloader-main`. Mit Git geht auch `git clone https://github.com/patrickbaus-bit/Ilias-downloader.git`.
 
-**Variante A – ohne Git:** Oben auf dieser GitHub-Seite auf **Code → Download ZIP** klicken, die ZIP-Datei entpacken und den Ordner z. B. nach `Dokumente` verschieben.
-
-**Variante B – mit Git:**
+### 2. Installieren und einrichten
 
 ```zsh
-cd ~/Documents
-git clone https://github.com/patrickbaus-bit/Ilias-downloader.git
+cd ~/Documents/Ilias-downloader-main
+zsh install.sh
 ```
 
-### 3. Installieren und einrichten
+Der Installer lädt beim ersten Mal Python und alle Pakete in deinen Benutzerordner (einige Minuten, kein Admin-Passwort nötig).
 
-Im Terminal in den Ordner wechseln und den Installer starten. Tipp: `cd ` tippen (mit Leerzeichen) und dann den Ordner aus dem Finder ins Terminal ziehen.
-
-```zsh
-cd ~/Documents/Ilias-downloader
-chmod +x install.sh
-./install.sh
-```
-
-Der Installer richtet alles ein und fragt danach:
+Danach fragt er:
 
 1. **Uni-ID und Passwort** – optional. Mit gespeicherten Daten meldet sich der Downloader selbst an und kann im Hintergrund laufen. Ohne öffnet sich jedes Mal ein Fenster, in dem du dich selbst anmeldest.
-2. **Ordner und Optionen** – wohin die Kursmaterialien sollen (Standard: `Dokumente/Uni/ILIAS`), wohin die Markdown-Kopien, und ob der tägliche Abgleich im Hintergrund laufen und Markdown erzeugen soll.
+2. **Ordner und Optionen** – wohin die Kursmaterialien sollen (Standard: `Dokumente/Uni/ILIAS`), ob nach jedem Abgleich Markdown-Kopien entstehen sollen und wohin, und ob der tägliche Abgleich ohne Browserfenster laufen soll.
 3. **Täglicher Abgleich** – ob und um welche Uhrzeit der Mac jeden Tag nach neuen Materialien schauen soll.
 
-### 4. Erster Abgleich
+### 3. Erster Abgleich
 
 ```zsh
 ./run.sh
@@ -93,19 +85,19 @@ Falls macOS fragt, ob das Terminal auf den Ordner „Dokumente“ zugreifen darf
 |---|---|
 | Neue Materialien laden (mit sichtbarem Browserfenster) | `./run.sh` |
 | Ohne Browserfenster (braucht gespeicherte Zugangsdaten) | `./run.sh --headless` |
-| Danach direkt Markdown erzeugen | `./run.sh --markdown` |
+| Markdown diesmal auslassen / erzwingen (Standard: laut Einstellung) | `./run.sh --kein-markdown` / `./run.sh --markdown` |
 | Kurse neu auswählen (z. B. neues Semester) | `./run.sh --kurse-waehlen` |
 | Nur Markdown-Kopien erzeugen | `./markdown.sh` |
 | Fehlgeschlagene Markdown-Dateien erneut versuchen | `./markdown.sh --retry-failed` |
 | Alles neu einrichten | `./setup.sh` |
-| Nur Zugangsdaten ändern / löschen | `./setup.sh --zugangsdaten` / `./setup.sh --zugangsdaten-loeschen` |
+| Zugangsdaten ändern / löschen | Doppelklick auf „Zugangsdaten eingeben.command“ / `./setup.sh --zugangsdaten-loeschen` |
 | Nur Ordner und Optionen ändern | `./setup.sh --ordner` |
 | Uhrzeit ändern / täglichen Abgleich ausschalten | `./setup.sh --zeitplan` / `./setup.sh --zeitplan-entfernen` |
 
 **Kurzbefehl:** Wenn du nicht jedes Mal in den Ordner wechseln willst, einmal ausführen (Pfad ggf. anpassen):
 
 ```zsh
-echo 'alias iliasdl="$HOME/Documents/Ilias-downloader/run.sh"' >> ~/.zshrc
+echo 'alias iliasdl="$HOME/Documents/Ilias-downloader-main/run.sh"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
@@ -147,7 +139,7 @@ Die Einordnung richtet sich nach Datei- und ILIAS-Ordnernamen. Du kannst Dateien
 
 ## Markdown für KI-Tools
 
-`./markdown.sh` (oder `./run.sh --markdown`) erzeugt aus allen PDF-, Word-, PowerPoint-, Excel-, CSV-, HTML- und Bilddateien Markdown-Kopien in derselben Ordnerstruktur. Diese Dateien sind als Kontext für KI-Modelle gedacht:
+Aus allen PDF-, Word-, PowerPoint-, Excel-, CSV-, HTML- und Bilddateien entstehen Markdown-Kopien in derselben Ordnerstruktur. Ist Markdown eingeschaltet, passiert das automatisch nach jedem Abgleich; `./markdown.sh` erzeugt sie auch ohne Abgleich. Die Dateien sind als Kontext für KI-Modelle gedacht:
 
 - Vor jeder PDF-Seite steht `[Seite 12 von 80]`, vor jeder Folie `[Folie 7 von 30]`. So können du und die KI über dieselben Stellen sprechen.
 - Text in Bildern, Scans und Screenshots wird lokal per Texterkennung (Apple Vision) gelesen.
@@ -165,8 +157,8 @@ Der Konverter funktioniert auch unabhängig von ILIAS für beliebige Ordner:
 
 ## Probleme?
 
-- **„Bitte zuerst ./install.sh ausführen“** – die Installation ist nicht durchgelaufen. `./install.sh` erneut starten und auf Fehlermeldungen achten.
-- **„ILIAS-Anmeldung fehlgeschlagen“** – Uni-ID oder Passwort stimmen nicht. Mit `./setup.sh --zugangsdaten` neu eingeben. Der Downloader versucht es pro Lauf nur einmal, damit dein Konto nicht gesperrt wird.
+- **„Bitte zuerst ./install.sh ausführen“** – die Installation ist nicht durchgelaufen. `zsh install.sh` erneut starten und auf Fehlermeldungen achten (Uni-WLAN oder VPN können Downloads blockieren).
+- **„ILIAS-Anmeldung fehlgeschlagen“** – Uni-ID oder Passwort stimmen nicht. Per Doppelklick auf „Zugangsdaten eingeben.command“ neu eingeben. Der Downloader versucht es pro Lauf nur einmal, damit dein Konto nicht gesperrt wird.
 - **„ILIAS verlangt einen weiteren Anmeldeschritt“** – z. B. Zwei-Faktor-Abfrage. Einmal `./run.sh` starten und die Anmeldung im sichtbaren Fenster abschließen. Danach merkt sich der Downloader die Sitzung eine Weile. Für den täglichen Abgleich ggf. mit `./setup.sh --ordner` die Hintergrund-Option ausschalten.
 - **„Operation not permitted“ / keine Dateien im Ordner „Dokumente“** – Systemeinstellungen → Datenschutz & Sicherheit → Dateien und Ordner → beim Terminal „Dokumente“ erlauben.
 - **Ein Kurs fehlt in der Liste** – der Downloader liest die Kurse aus „Meine Kurse und Gruppen“ auf ILIAS. Kurs dort beitreten und `./run.sh --kurse-waehlen` ausführen.
@@ -174,7 +166,7 @@ Der Konverter funktioniert auch unabhängig von ILIAS für beliebige Ordner:
 
 ## Aktualisieren
 
-Mit Git: im Ordner `git pull` und danach `./install.sh` (deine Einstellungen bleiben erhalten). Ohne Git: neue ZIP herunterladen, alten Ordner ersetzen, `./install.sh` ausführen.
+Neue Version wie in Schritt 1 herunterladen (bzw. `git pull`) und `zsh install.sh` ausführen. Deine Einstellungen, Kursauswahl und Zugangsdaten bleiben erhalten.
 
 ## Deinstallieren
 

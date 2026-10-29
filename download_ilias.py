@@ -384,13 +384,18 @@ def main() -> None:
     parser.add_argument("--session-file", type=Path, help="Lokale ILIAS-Sitzungsdatei")
     parser.add_argument("--headless", action="store_true", help="Ohne Browserfenster; erfordert gültige Sitzung oder gespeicherte Zugangsdaten")
     parser.add_argument("--no-auto-login", action="store_true", help="Zugangsdaten aus dem Schlüsselbund nicht verwenden")
-    parser.add_argument("--markdown", action="store_true", help="Danach Markdown-Kopien für KI-Werkzeuge erzeugen")
+    md = parser.add_mutually_exclusive_group()
+    md.add_argument("--markdown", action="store_true", default=None,
+                    help="Danach Markdown-Kopien erzeugen (Standard: laut Einstellung)")
+    md.add_argument("--kein-markdown", dest="markdown", action="store_false",
+                    help="Diesmal keine Markdown-Kopien erzeugen")
     parser.add_argument("--use-settings", action="store_true", help="Hintergrund- und Markdown-Option aus settings.json übernehmen (für den Zeitplan)")
     args = parser.parse_args()
     if args.use_settings:
         config = settings.load()
         args.headless = args.headless or (config["headless"] and settings.get_credentials() is not None)
-        args.markdown = args.markdown or config["markdown_after_sync"]
+    if args.markdown is None:
+        args.markdown = bool(settings.load()["markdown_after_sync"])
     root = args.output.expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
     reselect = args.choose or args.selection is not None or args.list_courses

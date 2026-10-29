@@ -74,12 +74,14 @@ def setup_folders() -> None:
             continue
         break
     data["semester_dir"], data["markdown_dir"] = str(semester), str(markdown)
-    data["markdown_after_sync"] = yes("Beim täglichen Abgleich danach Markdown-Kopien erzeugen?",
-                                      default=bool(data["markdown_after_sync"]))
+    data["markdown_after_sync"] = yes("Nach jedem Abgleich automatisch Markdown-Kopien für KI-Tools erzeugen?",
+                                      default=True)
     data["headless"] = yes("Täglichen Abgleich ohne Browserfenster ausführen (nur mit gespeicherten Zugangsdaten)?",
                            default=bool(data["headless"]))
     settings.save(data)
     semester.mkdir(parents=True, exist_ok=True)
+    if data["markdown_after_sync"]:
+        markdown.mkdir(parents=True, exist_ok=True)
     print(f"Gespeichert in {settings.SETTINGS_FILE}")
 
 
@@ -167,7 +169,7 @@ def status() -> None:
         "materialordner": data["semester_dir"],
         "markdown_ordner": data["markdown_dir"],
         "taeglich_ohne_browserfenster": data["headless"],
-        "taeglich_markdown_erzeugen": data["markdown_after_sync"],
+        "markdown_nach_jedem_abgleich": data["markdown_after_sync"],
         "taeglicher_abgleich_um": schedule,
         "kurse_ausgewaehlt": list(courses) if courses else None,
         "ilias_sitzung_vorhanden": settings.SESSION_FILE.exists(),
@@ -208,7 +210,11 @@ def apply_options(args: argparse.Namespace) -> None:
         data["markdown_after_sync"] = args.markdown_nach_abgleich
     settings.save(data)
     semester.mkdir(parents=True, exist_ok=True)
+    if data["markdown_after_sync"]:
+        markdown.mkdir(parents=True, exist_ok=True)
     print(f"Einstellungen gespeichert in {settings.SETTINGS_FILE}")
+    print(f"  Materialordner: {semester}")
+    print(f"  Markdown:       {markdown if data['markdown_after_sync'] else 'aus'}")
     if args.taeglich_um:
         write_schedule(*args.taeglich_um)
 
@@ -229,7 +235,7 @@ def main() -> None:
     direct.add_argument("--hintergrund", type=parse_bool, metavar="ja|nein",
                         help="Täglichen Abgleich ohne Browserfenster ausführen")
     direct.add_argument("--markdown-nach-abgleich", type=parse_bool, metavar="ja|nein",
-                        help="Beim täglichen Abgleich danach Markdown erzeugen")
+                        help="Nach jedem Abgleich Markdown-Kopien erzeugen")
     direct.add_argument("--taeglich-um", type=parse_time, metavar="HH:MM", help="Täglichen Abgleich einrichten")
     args = parser.parse_args()
     direct_given = any(getattr(args, name) is not None for name in
