@@ -177,6 +177,11 @@ def discover_courses(page: Page) -> dict[str, str]:
             continue
         if not ilias_url(page.url):
             continue
+        try:
+            # The membership lists are partly filled in by JavaScript after the page loads.
+            page.wait_for_load_state("networkidle", timeout=10_000)
+        except Error:
+            pass
         for href, label in content_links(page):
             target = object_target(href)
             title = re.sub(r"\s+", " ", label.split("\n", 1)[0]).strip()
@@ -240,7 +245,7 @@ def choose_courses(found: dict[str, str], selection: str | None = None) -> dict[
     courses: dict[str, list[str]] = {}
     for n in chosen:
         target, title = items[n - 1]
-        name = safe_name(title, target.replace("/", "-"))
+        name = safe_name(re.sub(r"\s*/\s*", " - ", title), target.replace("/", "-"))
         while name in courses:
             name += " (2)"
         courses[name] = [target]
