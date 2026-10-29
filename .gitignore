@@ -1,0 +1,15 @@
+# Persönliche Daten – gehören nie ins Repo
+.ilias-*-profile/
+.ilias-session.json
+ilias-session.json
+settings.json
+courses.json
+downloads/
+*.log
+
+# Python / macOS
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store

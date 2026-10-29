@@ -1,0 +1,181 @@
+# ILIAS-Downloader – Uni Mannheim
+
+Lädt automatisch alle Materialien aus deinen ILIAS-Kursen auf deinen Mac, sortiert sie in einen Ordner pro Kurs und erzeugt auf Wunsch Markdown-Kopien, die du KI-Tools (ChatGPT, Claude, NotebookLM …) als Kontext geben kannst.
+
+- Lädt nur, was du in ILIAS ohnehin sehen darfst. Es werden keine Zugriffsrechte umgangen.
+- Lädt nur **neue** Dateien. Was du schon hast, wird am Inhalt erkannt, auch wenn du es umbenannt oder verschoben hast.
+- Läuft auf Wunsch jeden Tag automatisch zu einer festen Uhrzeit.
+- Uni-ID und Passwort bleiben im macOS-Schlüsselbund. Sie werden nirgendwohin geschickt außer an das Uni-Login `idp.uni-mannheim.de`.
+
+**Voraussetzungen:** ein Mac (macOS 13 oder neuer, Apple-Silicon oder Intel) und Python 3.10 oder neuer.
+
+---
+
+## Installation (einmalig, ca. 5 Minuten)
+
+### 1. Python installieren (falls noch nicht vorhanden)
+
+Öffne das Programm **Terminal** (Cmd + Leertaste → „Terminal“) und prüfe:
+
+```zsh
+python3 --version
+```
+
+Steht dort `Python 3.10` oder höher, kannst du zu Schritt 2 springen. Sonst installiere zuerst [Homebrew](https://brew.sh) (Befehl von der Website ins Terminal kopieren) und danach Python:
+
+```zsh
+brew install python@3.12
+```
+
+### 2. Downloader herunterladen
+
+**Variante A – ohne Git:** Oben auf dieser GitHub-Seite auf **Code → Download ZIP** klicken, die ZIP-Datei entpacken und den Ordner z. B. nach `Dokumente` verschieben.
+
+**Variante B – mit Git:**
+
+```zsh
+cd ~/Documents
+git clone https://github.com/patrickbaus-bit/Ilias-downloader.git
+```
+
+### 3. Installieren und einrichten
+
+Im Terminal in den Ordner wechseln und den Installer starten. Tipp: `cd ` tippen (mit Leerzeichen) und dann den Ordner aus dem Finder ins Terminal ziehen.
+
+```zsh
+cd ~/Documents/Ilias-downloader
+chmod +x install.sh
+./install.sh
+```
+
+Der Installer richtet alles ein und fragt danach:
+
+1. **Uni-ID und Passwort** – optional. Mit gespeicherten Daten meldet sich der Downloader selbst an und kann im Hintergrund laufen. Ohne öffnet sich jedes Mal ein Fenster, in dem du dich selbst anmeldest.
+2. **Ordner und Optionen** – wohin die Kursmaterialien sollen (Standard: `Dokumente/Uni/ILIAS`), wohin die Markdown-Kopien, und ob der tägliche Abgleich im Hintergrund laufen und Markdown erzeugen soll.
+3. **Täglicher Abgleich** – ob und um welche Uhrzeit der Mac jeden Tag nach neuen Materialien schauen soll.
+
+### 4. Erster Abgleich
+
+```zsh
+./run.sh
+```
+
+Beim ersten Mal listet der Downloader alle Kurse und Gruppen auf, in denen du auf ILIAS eingeschrieben bist. Du gibst die Nummern der Kurse ein, die du haben willst (z. B. `1 3 5-8`, oder Enter für alle). Danach beginnt der Download.
+
+Falls macOS fragt, ob das Terminal auf den Ordner „Dokumente“ zugreifen darf: **Erlauben** klicken.
+
+---
+
+## Benutzung
+
+| Was | Befehl |
+|---|---|
+| Neue Materialien laden (mit sichtbarem Browserfenster) | `./run.sh` |
+| Ohne Browserfenster (braucht gespeicherte Zugangsdaten) | `./run.sh --headless` |
+| Danach direkt Markdown erzeugen | `./run.sh --markdown` |
+| Kurse neu auswählen (z. B. neues Semester) | `./run.sh --kurse-waehlen` |
+| Nur Markdown-Kopien erzeugen | `./markdown.sh` |
+| Fehlgeschlagene Markdown-Dateien erneut versuchen | `./markdown.sh --retry-failed` |
+| Alles neu einrichten | `./setup.sh` |
+| Nur Zugangsdaten ändern / löschen | `./setup.sh --zugangsdaten` / `./setup.sh --zugangsdaten-loeschen` |
+| Nur Ordner und Optionen ändern | `./setup.sh --ordner` |
+| Uhrzeit ändern / täglichen Abgleich ausschalten | `./setup.sh --zeitplan` / `./setup.sh --zeitplan-entfernen` |
+
+**Kurzbefehl:** Wenn du nicht jedes Mal in den Ordner wechseln willst, einmal ausführen (Pfad ggf. anpassen):
+
+```zsh
+echo 'alias iliasdl="$HOME/Documents/Ilias-downloader/run.sh"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+Danach genügt überall `iliasdl`.
+
+### Täglicher Abgleich
+
+Zur eingestellten Uhrzeit öffnet sich ein Terminal-Fenster und lädt neue Dateien. Läuft alles glatt, kannst du es einfach schließen. Bei einem Fehler bleibt es offen, damit du die Meldung lesen kannst. War der Mac zu der Zeit aus oder zugeklappt, läuft der Abgleich nach dem nächsten Aufwachen.
+
+Ein Protokoll aller Läufe liegt in `~/Library/Application Support/ILIAS Downloader/ilias-downloader.log`.
+
+---
+
+## Wie die Dateien sortiert werden
+
+Im Zielordner entsteht ein Unterordner pro Kurs, darin:
+
+```
+Vorlesung/                 Folien, Skripte, Handouts
+Übung/Aufgaben/            Übungsblätter
+Übung/Loesungen/           Lösungen
+Tutorium/Aufgaben/
+Tutorium/Loesungen/
+Prüfung/Aufgaben/          Altklausuren
+Prüfung/Loesungen/
+Organisatorisches/         Syllabus, Termine, Infoblätter
+Sonstiges/                 alles, was keiner Regel entspricht
+```
+
+Die Einordnung richtet sich nach Datei- und ILIAS-Ordnernamen. Du kannst Dateien danach frei verschieben oder umbenennen, sie werden trotzdem nicht erneut heruntergeladen. Gibt es eine Datei mit gleichem Namen, aber neuem Inhalt, wird die neue Version mit einem kurzen Kürzel am Namensende daneben gelegt.
+
+**Kursordner umbenennen oder zusammenlegen:** Die Kursauswahl steht in `~/Library/Application Support/ILIAS Downloader/courses.json`. Dort kannst du den Ordnernamen ändern (vorher den Ordner im Finder genauso umbenennen) oder eine Tutoriumsgruppe zu einem Kurs hinzufügen:
+
+```json
+{
+  "Finanzmathematik": ["crs/1234567", "grp/1234570"]
+}
+```
+
+## Markdown für KI-Tools
+
+`./markdown.sh` (oder `./run.sh --markdown`) erzeugt aus allen PDF-, Word-, PowerPoint-, Excel-, CSV-, HTML- und Bilddateien Markdown-Kopien in derselben Ordnerstruktur. Diese Dateien sind als Kontext für KI-Modelle gedacht:
+
+- Vor jeder PDF-Seite steht `[Seite 12 von 80]`, vor jeder Folie `[Folie 7 von 30]`. So können du und die KI über dieselben Stellen sprechen.
+- Text in Bildern, Scans und Screenshots wird lokal per Texterkennung (Apple Vision) gelesen.
+- Excel-Tabellen behalten Spaltenbuchstaben, Zeilennummern und Formeln.
+- Im Zielordner erklärt `_KI-ANLEITUNG.md` der KI diese Konventionen, `INDEX.md` listet alle Dateien.
+- Nur neue oder geänderte Dateien werden umgewandelt. Alles läuft offline auf deinem Mac, ohne KI-Dienst.
+
+Der Konverter funktioniert auch unabhängig von ILIAS für beliebige Ordner:
+
+```zsh
+./markdown.sh --source '/irgendein/Ordner' --target '/Ziel/Ordner'
+```
+
+---
+
+## Probleme?
+
+- **„Bitte zuerst ./install.sh ausführen“** – die Installation ist nicht durchgelaufen. `./install.sh` erneut starten und auf Fehlermeldungen achten.
+- **„ILIAS-Anmeldung fehlgeschlagen“** – Uni-ID oder Passwort stimmen nicht. Mit `./setup.sh --zugangsdaten` neu eingeben. Der Downloader versucht es pro Lauf nur einmal, damit dein Konto nicht gesperrt wird.
+- **„ILIAS verlangt einen weiteren Anmeldeschritt“** – z. B. Zwei-Faktor-Abfrage. Einmal `./run.sh` starten und die Anmeldung im sichtbaren Fenster abschließen. Danach merkt sich der Downloader die Sitzung eine Weile. Für den täglichen Abgleich ggf. mit `./setup.sh --ordner` die Hintergrund-Option ausschalten.
+- **„Operation not permitted“ / keine Dateien im Ordner „Dokumente“** – Systemeinstellungen → Datenschutz & Sicherheit → Dateien und Ordner → beim Terminal „Dokumente“ erlauben.
+- **Ein Kurs fehlt in der Liste** – der Downloader liest die Kurse aus „Meine Kurse und Gruppen“ auf ILIAS. Kurs dort beitreten und `./run.sh --kurse-waehlen` ausführen.
+- **Dateien werden nicht gefunden** – ILIAS ändert gelegentlich seine Seitenstruktur. Bitte ein Issue hier auf GitHub anlegen (ohne persönliche Daten).
+
+## Aktualisieren
+
+Mit Git: im Ordner `git pull` und danach `./install.sh` (deine Einstellungen bleiben erhalten). Ohne Git: neue ZIP herunterladen, alten Ordner ersetzen, `./install.sh` ausführen.
+
+## Deinstallieren
+
+```zsh
+./setup.sh --zeitplan-entfernen
+./setup.sh --zugangsdaten-loeschen
+rm -rf "$HOME/Library/Application Support/ILIAS Downloader" "$HOME/Library/Caches/ILIAS Downloader"
+```
+
+Danach den Downloader-Ordner löschen. Deine heruntergeladenen Kursmaterialien bleiben erhalten.
+
+## Wo liegt was?
+
+| Was | Wo |
+|---|---|
+| Programm | dieser Ordner |
+| Python-Umgebung, Einstellungen, Kursauswahl, ILIAS-Sitzung, Protokoll | `~/Library/Application Support/ILIAS Downloader/` |
+| Uni-ID und Passwort | macOS-Schlüsselbund, Eintrag „ILIAS Downloader – Uni Mannheim“ |
+| Zeitplan | `~/Library/LaunchAgents/de.ilias-downloader.daily.plist` |
+
+## Lizenz und Hinweise
+
+Privates Projekt, nicht von der Universität Mannheim. Nutzung auf eigene Verantwortung; beachte die Nutzungsbedingungen von ILIAS und das Urheberrecht an den Kursmaterialien (nur für den eigenen Gebrauch, nicht weiterverbreiten).
+
+PyMuPDF/pymupdf4llm, die für die PDF-Umwandlung verwendet werden, stehen unter der AGPL-3.0.

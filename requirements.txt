@@ -1,0 +1,8 @@
+playwright>=1.52,<2
+keyring>=25
+# 2.0 on PyPI is an empty placeholder package
+pymupdf4llm>=0.0.17,<2
+markitdown[docx,pptx,xlsx,xls]>=0.1
+# Local OCR via the macOS Vision framework
+pyobjc-framework-Vision>=10
+pyobjc-framework-Quartz>=10
