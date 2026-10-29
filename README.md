@@ -121,6 +121,8 @@ Tutorium/Aufgaben/
 Tutorium/Loesungen/
 Prüfung/Aufgaben/          Altklausuren
 Prüfung/Loesungen/
+Prüfung/Aufgaben_mit_Loesungen/
+Lernmaterial/              Vokabeln, Grammatik, Cheat Sheets, Formelsammlungen
 Organisatorisches/         Syllabus, Termine, Infoblätter
 Sonstiges/                 alles, was keiner Regel entspricht
 ```

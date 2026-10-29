@@ -10,6 +10,7 @@ Every course folder gets the same layout:
     Prüfung/Aufgaben/          old exams
     Prüfung/Loesungen/         exam solutions
     Prüfung/Aufgaben_mit_Loesungen/
+    Lernmaterial/              vocabulary, grammar, cheat sheets, formula collections
     Organisatorisches/         syllabus, schedules, info sheets
     Sonstiges/                 everything that matches no rule
 
@@ -48,12 +49,21 @@ def download_category(text: str, course: str) -> Path:
 
     if _any(name, ("taschenrechner", "deckblatt", "faq", "klausurregeln")):
         return Path("Prüfung")
-    if re.search(r"klausur|exam|prüfung|pruefung|altklausur|probeklausur", name):
-        if _any(name, ("with solution", "mit lösung", "mit loesung")):
+    with_solutions = _any(name, ("with solution", "mit lösung", "mit loesung"))
+    # Old exams: "Klausur …", "Exam …", or a semester tag like "HWS 24 Section I …".
+    old_exam = re.search(r"^(?:hws|fss|ws|ss)\s?\d{2}\b.*\b(?:section|teil|part)\b", name)
+    if old_exam or re.search(r"klausur|exam|prüfung|pruefung|altklausur|probeklausur", name):
+        if with_solutions:
             return Path("Prüfung/Aufgaben_mit_Loesungen")
         return Path("Prüfung") / ("Loesungen" if solution(name) else "Aufgaben")
-    if _any(name, ("organis", "syllabus", "schedule", "zeitplan", "infoblatt", "einteilung", "termine", "modulbeschreibung")):
+    if _any(name, ("organis", "syllabus", "schedule", "zeitplan", "infoblatt", "einteilung", "termine",
+                   "modulbeschreibung", "memo", "attendance", "anwesenheit", "certificate", "zertifikat",
+                   "marking key", "bewertungsschema", "grading")) or re.search(r"(?:^|\s)info\b", name):
         return Path("Organisatorisches")
+    if _any(name, ("vocab", "glossar", "glossary", "grammar", "grammatik", "cheat sheet", "cheatsheet",
+                   "formelsammlung", "formula sheet", "formelblatt", "irregular verbs", "alphabet",
+                   "spickzettel", "merkblatt")):
+        return Path("Lernmaterial")
 
     exercise_words = ("übung", "uebung", "exercise", "assignment", "aufgabe", "blatt", "problem set", "quiz")
     is_tutorial = "tutor" in name or ("tutor" in context and not _any(name, exercise_words))
@@ -61,6 +71,12 @@ def download_category(text: str, course: str) -> Path:
         kind = "Tutorium" if is_tutorial else "Übung"
         return Path(kind) / ("Loesungen" if solution(name) else "Aufgaben")
 
+    lecture_words = ("vorlesung", "lecture", "slide", "skript", "script", "folie", "handout",
+                     "introduction", "einführung", "einfuehrung", "chapter", "kapitel")
+    # Lecture parts like "OPM301_II_Optimization" or "FIN 401 – III Valuation".
+    lecture_part = re.search(r"^[a-z]{2,4}\s?\d{3}[\s_–-]+(?:[ivx]{1,4}|\d{1,2})[\s_.–-]", name)
+    if _any(name, lecture_words) or lecture_part or re.search(r"\bvl\s*\d", name):
+        return Path("Vorlesung")
     if _any(context, ("vorlesung", "lecture", "slides", "skript", "folien", "handout", "foliensatz")) or re.search(r"\bvl\s*\d", context):
         return Path("Vorlesung")
     if "literatur" in context or "reading" in context:

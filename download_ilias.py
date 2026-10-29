@@ -80,6 +80,8 @@ def response_filename(url: str, headers: dict[str, str], label: str) -> str:
             extension = mimetypes.guess_extension(headers.get("content-type", "").split(";", 1)[0]) or ""
             name = safe_name(link_label or "ilias-datei") + extension
     name = html.unescape(name)
+    # ILIAS sends "&" in file names as "aamp;" (sometimes "amp;").
+    name = re.sub(r"(?<![A-Za-z])a?amp;", "&", name)
     if not Path(name).suffix:
         name += mimetypes.guess_extension(headers.get("content-type", "").split(";", 1)[0]) or ""
     return safe_name(name, "ilias-datei")
