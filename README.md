@@ -189,4 +189,4 @@ Danach den Downloader-Ordner löschen. Deine heruntergeladenen Kursmaterialien b
 
 Privates Projekt, nicht von der Universität Mannheim. Nutzung auf eigene Verantwortung; beachte die Nutzungsbedingungen von ILIAS und das Urheberrecht an den Kursmaterialien (nur für den eigenen Gebrauch, nicht weiterverbreiten).
 
-PyMuPDF/pymupdf4llm, die für die PDF-Umwandlung verwendet werden, stehen unter der AGPL-3.0.
+Der Code steht unter der [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-or-later): Du darfst ihn frei nutzen, verändern und weitergeben, solange abgeleitete Versionen ebenfalls unter dieser Lizenz und mit Quellcode veröffentlicht werden. Die Lizenz passt zu PyMuPDF/pymupdf4llm, die für die PDF-Umwandlung verwendet werden und ebenfalls unter der AGPL-3.0 stehen.
