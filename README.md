@@ -94,6 +94,7 @@ Falls macOS fragt, ob das Terminal auf den Ordner „Dokumente“ zugreifen darf
 | Zugangsdaten ändern / löschen | Doppelklick auf „Zugangsdaten eingeben.command“ / `./setup.sh --zugangsdaten-loeschen` |
 | Nur Ordner und Optionen ändern | `./setup.sh --ordner` |
 | Uhrzeit ändern / täglichen Abgleich ausschalten | `./setup.sh --zeitplan` / `./setup.sh --zeitplan-entfernen` |
+| Täglichen Abgleich jetzt einmal ausprobieren | `./setup.sh --zeitplan-testen` |
 
 **Kurzbefehl:** Wenn du nicht jedes Mal in den Ordner wechseln willst, einmal ausführen (Pfad ggf. anpassen):
 

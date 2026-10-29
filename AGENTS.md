@@ -94,7 +94,23 @@ Mit `aktuell` folgt der Downloader künftig von selbst dem Semester: Neue Kurse 
 
 Der erste Abgleich lädt alle Materialien und erzeugt danach die Markdown-Kopien (falls eingeschaltet). Das dauert grob 3 bis 5 Minuten pro Kurs; lass den Befehl durchlaufen und sag der Person, dass der Mac so lange wach bleiben sollte.
 
-### 7. Abschluss prüfen
+### 7. Täglichen Abgleich testen (falls eingerichtet)
+
+Nach dem ersten Abgleich den geplanten Lauf einmal sofort auslösen, damit macOS seine Berechtigungsfragen jetzt stellt, während die Person da ist, und nicht unbemerkt um 9 Uhr:
+
+```zsh
+./setup.sh --zeitplan-testen
+```
+
+Es öffnet sich ein neues Terminal-Fenster mit dem Abgleich. Sag der Person vorher: Fragt macOS, ob Terminal auf „Dokumente“ zugreifen darf, oder ob Python den Schlüsselbund-Eintrag „ILIAS Downloader“ verwenden darf, klickt sie **Erlauben** bzw. **Immer erlauben**. Prüfe danach das Ende des Protokolls:
+
+```zsh
+tail -20 "$HOME/Library/Application Support/ILIAS Downloader/ilias-downloader.log"
+```
+
+Dort muss „beendet mit Status 0“ stehen. Bei einem anderen Status: Meldung darüber lesen und die Fehlerbehebung unten nutzen.
+
+### 8. Abschluss prüfen
 
 ```zsh
 ./setup.sh --status
@@ -114,6 +130,7 @@ Prüfe, dass Ordner, Kurse und (falls gewünscht) die Uhrzeit stimmen, dass im M
 | `zsh install.sh --ohne-einrichtung` | Installieren bzw. aktualisieren, ohne Rückfragen |
 | `./setup.sh --status` | Aktuelle Einrichtung als JSON |
 | `./setup.sh --materialordner P --markdown-ordner P --hintergrund ja\|nein --markdown-nach-abgleich ja\|nein --taeglich-um HH:MM` | Einstellen ohne Rückfragen (nur angegebene Werte ändern sich, Ordner werden angelegt) |
+| `./setup.sh --zeitplan-testen` | Geplanten Abgleich sofort einmal auslösen (wie zur eingestellten Uhrzeit) |
 | `./setup.sh --zeitplan-entfernen` | Täglichen Abgleich ausschalten |
 | „Zugangsdaten eingeben.command“ (Doppelklick) bzw. `./setup.sh --zugangsdaten` | **Nur die Person selbst**, fragt verdeckt nach dem Passwort |
 | `./setup.sh --zugangsdaten-loeschen` | Zugangsdaten aus dem Schlüsselbund löschen |
@@ -137,6 +154,9 @@ Alles Persönliche liegt in `~/Library/Application Support/ILIAS Downloader/` (P
 | `ILIAS verlangt einen weiteren Anmeldeschritt` | `./run.sh` (mit Fenster) starten, Person schließt die Anmeldung selbst ab. |
 | `Auf ILIAS wurden keine Kurse gefunden` | Person soll prüfen, ob sie auf ILIAS unter „Meine Kurse und Gruppen“ Kurse hat. Sonst Issue auf GitHub. |
 | `Operation not permitted` beim Ordner „Dokumente“ | Systemeinstellungen → Datenschutz & Sicherheit → Dateien und Ordner → dem Terminal (bzw. deiner App) „Dokumente“ erlauben. Alternativ einen Ordner außerhalb von Dokumente wählen. |
+| Täglicher Abgleich bricht mit `Operation not permitted` ab | Terminal hat keinen Zugriff auf „Dokumente“: Systemeinstellungen → Datenschutz & Sicherheit → Dateien und Ordner → Terminal → Dokumente einschalten, dann `./setup.sh --zeitplan-testen`. |
+| Täglicher Abgleich wartet auf eine Schlüsselbund-Abfrage | Passiert nach einer Neuinstallation von Python. Einmal **Immer erlauben** klicken, oder Zugangsdaten per Doppelklick auf „Zugangsdaten eingeben.command“ neu speichern. |
+| Täglicher Abgleich findet den Projektordner nicht | Der Ordner wurde verschoben. Im neuen Ordner `./setup.sh --taeglich-um HH:MM` erneut ausführen. |
 | `launchctl bootstrap` schlägt fehl | `./setup.sh --zeitplan-entfernen`, dann `./setup.sh --taeglich-um HH:MM` erneut. |
 | Download hängt bei „prüfe vorhandene Originaldateien“ | Dateien liegen nur in iCloud. Der Downloader überspringt sie nach 5 Sekunden je Datei; abwarten. |
 | Eine Seite wird nicht gefunden / ILIAS sieht anders aus | ILIAS-Struktur hat sich geändert. Nicht den Code umschreiben, sondern ein Issue auf GitHub vorschlagen. |
