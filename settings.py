@@ -29,6 +29,8 @@ DEFAULTS = {
     # "manuell": keep the chosen courses until the next semester appears on ILIAS.
     "course_mode": "aktuell",
     "course_semester": None,
+    # Folder names inside the material folder that the Markdown converter ignores (e.g. own scripts).
+    "markdown_skip_dirs": [],
 }
 
 

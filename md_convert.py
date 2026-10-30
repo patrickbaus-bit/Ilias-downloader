@@ -75,13 +75,14 @@ Grafik abhängt, die hier nur als `[Abbildung]` erscheint, sage das und verweise
 
 
 def sources(root: Path) -> list[Path]:
+    skip = SKIP_DIRS | {d.casefold() for d in settings.load().get("markdown_skip_dirs", [])}
     found = []
     for directory, subdirs, filenames in os.walk(root):
         subdirs[:] = sorted(
             name for name in subdirs
             if not name.startswith(".")
             and not name.casefold().startswith("markdown")
-            and name.casefold() not in SKIP_DIRS
+            and name.casefold() not in skip
             and not (Path(directory) / name).is_symlink()
         )
         for name in sorted(filenames):
